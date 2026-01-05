@@ -5,8 +5,8 @@ import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph
 
 test("jumper-graph-generation09 - 1206x4 grid with regionsBetweenPads", () => {
   const jumperX4Grid = generateJumperX4Grid({
-    cols: 2,
-    rows: 2,
+    cols: 3,
+    rows: 3,
     marginX: 1,
     marginY: 1,
     regionsBetweenPads: true,
