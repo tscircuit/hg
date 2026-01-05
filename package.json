@@ -2,7 +2,9 @@
   "name": "hg",
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "scripts": {
+    "start": "cosmos"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
     "@types/bun": "latest",
