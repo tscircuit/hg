@@ -3,7 +3,7 @@ import { HyperGraphSolver } from "../HyperGraphSolver"
 import type {
   Connection,
   HyperGraph,
-  RegionPort,
+  RegionPortAssignment,
   SerializedConnection,
   SerializedHyperGraph,
   SolvedRoute,
@@ -11,6 +11,8 @@ import type {
 import type { JPort, JRegion } from "./jumper-types"
 import { visualizeJumperGraphSolver } from "./visualizeJumperGraphSolver"
 import { distance } from "@tscircuit/math-utils"
+import { computeDifferentNetCrossings } from "./computeDifferentNetCrossings"
+import { computeCrossingAssignments } from "./computeCrossingAssignments"
 
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
   UNIT_OF_COST = "distance"
@@ -33,7 +35,21 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
     port1: JPort,
     port2: JPort,
   ): number {
-    return 0
+    return computeDifferentNetCrossings(region, port1, port2) * 10
+  }
+
+  override getRipsRequiredForPortUsage(
+    region: JRegion,
+    port1: JPort,
+    port2: JPort,
+  ): RegionPortAssignment[] {
+    const crossingAssignments = computeCrossingAssignments(region, port1, port2)
+    // Filter out same-network crossings since those don't require ripping
+    return crossingAssignments.filter(
+      (a) =>
+        a.connection.mutuallyConnectedNetworkId !==
+        this.currentConnection!.mutuallyConnectedNetworkId,
+    )
   }
 
   override routeSolvedHook(solvedRoute: SolvedRoute) {}

@@ -56,15 +56,15 @@ export const visualizeJumperGraphSolver = (
     })
 
     graphics.points.push({
-      x: startCenter.x,
-      y: startCenter.y,
+      x: startCenter.x - 0.1,
+      y: startCenter.y + 0.1,
       color: connectionColor,
       label: [solver.currentConnection.connectionId, "start"].join("\n"),
     })
 
     graphics.points.push({
-      x: endCenter.x,
-      y: endCenter.y,
+      x: endCenter.x - 0.1,
+      y: endCenter.y + 0.1,
       color: connectionColor,
       label: [solver.currentConnection.connectionId, "end"].join("\n"),
     })

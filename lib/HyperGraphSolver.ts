@@ -114,6 +114,21 @@ export class HyperGraphSolver<
     return 0
   }
 
+  /**
+   * OPTIONALLY OVERRIDE THIS
+   *
+   * Return the assignments that would need to be ripped if the given ports
+   * are used together in the region. This is used to determine if adopting
+   * a route would require ripping other routes due to problematic crossings.
+   */
+  getRipsRequiredForPortUsage(
+    _region: RegionType,
+    _port1: RegionPortType,
+    _port2: RegionPortType,
+  ): RegionPortAssignment[] {
+    return []
+  }
+
   computeG(candidate: CandidateType): number {
     return (
       candidate.parent!.g +
@@ -201,10 +216,10 @@ export class HyperGraphSolver<
       cursorCandidate = cursorCandidate.parent as CandidateType | undefined
     }
 
-    // Rip any routes that are connected to the solved route and requeue
+    // Rip any routes that are connected to the solved route (port reuse) and requeue
+    const routesToRip: Set<SolvedRoute> = new Set()
     if (anyRipsRequired) {
       solvedRoute.requiredRip = true
-      const routesToRip: Set<SolvedRoute> = new Set()
       for (const candidate of solvedRoute.path) {
         if (
           candidate.port.assignment &&
@@ -214,7 +229,24 @@ export class HyperGraphSolver<
           routesToRip.add(candidate.port.assignment.solvedRoute)
         }
       }
+    }
 
+    // Check for rips required due to port usage (crossing assignments)
+    for (const candidate of solvedRoute.path) {
+      if (!candidate.lastPort || !candidate.lastRegion) continue
+      const ripsRequired = this.getRipsRequiredForPortUsage(
+        candidate.lastRegion as RegionType,
+        candidate.lastPort as RegionPortType,
+        candidate.port as RegionPortType,
+      )
+      for (const assignment of ripsRequired) {
+        routesToRip.add(assignment.solvedRoute)
+      }
+    }
+
+    // Perform the ripping
+    if (routesToRip.size > 0) {
+      solvedRoute.requiredRip = true
       for (const route of routesToRip) {
         this.ripSolvedRoute(route)
       }
