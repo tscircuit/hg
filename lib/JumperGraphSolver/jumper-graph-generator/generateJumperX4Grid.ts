@@ -1,6 +1,9 @@
-import type { JPort, JRegion } from "../jumper-types"
+import type { JPort, JRegion, JumperGraph } from "../jumper-types"
 import { computeBoundsCenter } from "../geometry/getBoundsCenter"
 import { dims1206x4 } from "./generateSingleJumperX4Regions"
+import { calculateGraphBounds } from "./calculateGraphBounds"
+import { applyTransformToGraph } from "../geometry/applyTransformToGraph"
+import { compose, translate, rotate } from "transformation-matrix"
 
 export const generateJumperX4Grid = ({
   cols,
@@ -14,6 +17,8 @@ export const generateJumperX4Grid = ({
   outerPaddingY = 0.5,
   outerChannelXPointCount,
   outerChannelYPointCount,
+  orientation = "vertical",
+  center,
 }: {
   cols: number
   rows: number
@@ -26,7 +31,9 @@ export const generateJumperX4Grid = ({
   outerPaddingY?: number
   outerChannelXPointCount?: number
   outerChannelYPointCount?: number
-}) => {
+  orientation?: "vertical" | "horizontal"
+  center?: { x: number; y: number }
+}): JumperGraph => {
   // Calculate outer channel points: use provided value or derive from outer padding
   const effectiveOuterChannelXPoints =
     outerChannelXPointCount ?? Math.max(1, Math.floor(outerPaddingX / 0.4))
@@ -901,8 +908,35 @@ export const generateJumperX4Grid = ({
     }
   }
 
-  return {
-    regions,
-    ports,
+  let graph: JumperGraph = { regions, ports }
+
+  // Apply transformations based on orientation and center
+  const needsRotation = orientation === "horizontal"
+  const needsCentering = center !== undefined
+
+  if (needsRotation || needsCentering) {
+    // Calculate current graph bounds and center
+    const currentBounds = calculateGraphBounds(graph.regions)
+    const currentCenter = computeBoundsCenter(currentBounds)
+
+    // Build transformation matrix
+    const matrices = []
+
+    // First translate to origin (current center -> origin)
+    matrices.push(translate(-currentCenter.x, -currentCenter.y))
+
+    // Apply 90-degree clockwise rotation if horizontal
+    if (needsRotation) {
+      matrices.push(rotate(-Math.PI / 2))
+    }
+
+    // Translate to target center (or back to current center if no center specified)
+    const targetCenter = center ?? currentCenter
+    matrices.push(translate(targetCenter.x, targetCenter.y))
+
+    const matrix = compose(...matrices)
+    graph = applyTransformToGraph(graph, matrix)
   }
+
+  return graph
 }
