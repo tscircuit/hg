@@ -1,11 +1,16 @@
 {
-  "name": "hg",
-  "module": "index.ts",
+  "name": "@tscircuit/hypergraph",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "start": "cosmos",
-    "build:site": "cosmos-export"
+    "build:site": "cosmos-export",
+    "build": "tsup ./lib/index.ts --dts --format esm"
   },
+  "files": [
+    "dist"
+  ],
+  "repository": "https://github.com/tscircuit/hypergraph",
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
     "@tscircuit/math-utils": "^0.0.29",
@@ -14,7 +19,8 @@
     "graphics-debug": "^0.0.76",
     "react-cosmos": "^7.1.0",
     "react-cosmos-plugin-vite": "^7.1.0",
-    "transformation-matrix": "^3.1.0"
+    "transformation-matrix": "^3.1.0",
+    "tsup": "^8.5.1"
   },
   "peerDependencies": {
     "typescript": "^5"

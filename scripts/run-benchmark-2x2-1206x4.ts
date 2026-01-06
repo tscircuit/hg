@@ -1,6 +1,7 @@
 import { generateJumperX4Grid } from "../lib/JumperGraphSolver/jumper-graph-generator/generateJumperX4Grid"
 import { createProblemFromBaseGraph } from "../lib/JumperGraphSolver/jumper-graph-generator/createProblemFromBaseGraph"
 import { JumperGraphSolver } from "../lib/JumperGraphSolver/JumperGraphSolver"
+import { calculateGraphBounds } from "../lib/JumperGraphSolver/jumper-graph-generator/calculateGraphBounds"
 
 const SAMPLES_PER_CROSSING_COUNT = 100
 const MIN_CROSSINGS = 2
@@ -34,6 +35,13 @@ const createBaseGraph = () =>
     outerChannelYPointCount: 5,
     regionsBetweenPads: true,
   })
+
+// Calculate and display graph size
+const sampleGraph = createBaseGraph()
+const bounds = calculateGraphBounds(sampleGraph.regions)
+const width = bounds.maxX - bounds.minX
+const height = bounds.maxY - bounds.minY
+console.log(`Graph size: ${width.toFixed(1)}x${height.toFixed(1)}mm`)
 
 console.log("Benchmark: Single 1206x4 Jumper Grid Solver")
 console.log("=".repeat(50))
