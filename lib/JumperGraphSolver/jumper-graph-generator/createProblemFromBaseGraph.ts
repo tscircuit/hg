@@ -44,6 +44,35 @@ const countCrossings = (
   return crossings
 }
 
+const MIN_POINT_DISTANCE = 0.4
+
+/**
+ * Calculates the distance between two points.
+ */
+const distance = (
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+): number => {
+  const dx = p1.x - p2.x
+  const dy = p1.y - p2.y
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+/**
+ * Checks if a point is at least MIN_POINT_DISTANCE away from all existing points.
+ */
+const isValidPoint = (
+  point: { x: number; y: number },
+  existingPoints: { x: number; y: number }[],
+): boolean => {
+  for (const existing of existingPoints) {
+    if (distance(point, existing) < MIN_POINT_DISTANCE) {
+      return false
+    }
+  }
+  return true
+}
+
 /**
  * Generates a random point on the perimeter of the given bounds
  */
@@ -111,16 +140,50 @@ export const createProblemFromBaseGraph = ({
 
   while (attempts < maxAttempts) {
     const xyConnections: XYConnection[] = []
+    const allPoints: { x: number; y: number }[] = []
+    let validGeneration = true
 
     for (let i = 0; i < numConnections; i++) {
-      const start = getRandomPerimeterPoint(graphBounds, random)
-      const end = getRandomPerimeterPoint(graphBounds, random)
+      // Try to find a valid start point
+      let start: { x: number; y: number } | null = null
+      for (let tryCount = 0; tryCount < 100; tryCount++) {
+        const candidate = getRandomPerimeterPoint(graphBounds, random)
+        if (isValidPoint(candidate, allPoints)) {
+          start = candidate
+          break
+        }
+      }
+      if (!start) {
+        validGeneration = false
+        break
+      }
+      allPoints.push(start)
+
+      // Try to find a valid end point
+      let end: { x: number; y: number } | null = null
+      for (let tryCount = 0; tryCount < 100; tryCount++) {
+        const candidate = getRandomPerimeterPoint(graphBounds, random)
+        if (isValidPoint(candidate, allPoints)) {
+          end = candidate
+          break
+        }
+      }
+      if (!end) {
+        validGeneration = false
+        break
+      }
+      allPoints.push(end)
 
       xyConnections.push({
         start,
         end,
         connectionId: getConnectionId(i),
       })
+    }
+
+    if (!validGeneration) {
+      attempts++
+      continue
     }
 
     const actualCrossings = countCrossings(xyConnections, graphBounds)
