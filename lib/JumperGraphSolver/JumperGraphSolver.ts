@@ -17,31 +17,53 @@ import { computeCrossingAssignments } from "./computeCrossingAssignments"
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
   UNIT_OF_COST = "distance"
 
+  portUsagePenalty = 1
+  crossingPenalty = 6
+  override ripCost = 40
+  baseMaxIterations = 400
+  additionalMaxIterationsPerConnection = 200
+
   constructor(input: {
     inputGraph: HyperGraph | SerializedHyperGraph
     inputConnections: (Connection | SerializedConnection)[]
+    ripCost?: number
+    portUsagePenalty?: number
+    crossingPenalty?: number
+    baseMaxIterations?: number
+    additionalMaxIterationsPerConnection?: number
   }) {
     super({
-      ...input,
       greedyMultiplier: 1.2,
       rippingEnabled: true,
-      ripCost: 40,
+      ...input,
     })
-    this.MAX_ITERATIONS = 400 + input.inputConnections.length * 200
+    this.ripCost = input.ripCost ?? this.ripCost
+    this.portUsagePenalty = input.portUsagePenalty ?? this.portUsagePenalty
+    this.crossingPenalty = input.crossingPenalty ?? this.crossingPenalty
+    this.baseMaxIterations = input.baseMaxIterations ?? this.baseMaxIterations
+    this.additionalMaxIterationsPerConnection =
+      input.additionalMaxIterationsPerConnection ??
+      this.additionalMaxIterationsPerConnection
+
+    this.MAX_ITERATIONS =
+      this.baseMaxIterations +
+      input.inputConnections.length * this.additionalMaxIterationsPerConnection
   }
 
   override estimateCostToEnd(port: JPort): number {
     return distance(port.d, this.currentEndRegion!.d.center)
   }
   override getPortUsagePenalty(port: JPort): number {
-    return port.ripCount ?? 0
+    return (port.ripCount ?? 0) * this.portUsagePenalty
   }
   override computeIncreasedRegionCostIfPortsAreUsed(
     region: JRegion,
     port1: JPort,
     port2: JPort,
   ): number {
-    return computeDifferentNetCrossings(region, port1, port2) * 6
+    return (
+      computeDifferentNetCrossings(region, port1, port2) * this.crossingPenalty
+    )
   }
 
   override getRipsRequiredForPortUsage(
