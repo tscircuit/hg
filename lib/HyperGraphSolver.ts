@@ -43,6 +43,8 @@ export class HyperGraphSolver<
   lastCandidate: Candidate | null = null
 
   visitedPointsForCurrentConnection: Map<PortId, GScore> = new Map()
+  fallbackRipCount = 0
+  maxFallbackRips = 0
 
   constructor(
     public input: {
@@ -324,6 +326,9 @@ export class HyperGraphSolver<
   override _step() {
     let currentCandidate = this.candidateQueue.dequeue() as CandidateType
     if (!currentCandidate) {
+      if (this.tryRecoverFromDeadEnd()) {
+        return
+      }
       this.failed = true
       this.error = "Ran out of candidates"
       return
@@ -343,6 +348,9 @@ export class HyperGraphSolver<
       )
     }
     if (!currentCandidate) {
+      if (this.tryRecoverFromDeadEnd()) {
+        return
+      }
       this.failed = true
       this.error = "Ran out of candidates"
       return
@@ -367,5 +375,26 @@ export class HyperGraphSolver<
     for (const nextCandidate of nextCandidates) {
       this.candidateQueue.enqueue(nextCandidate)
     }
+  }
+
+  private tryRecoverFromDeadEnd(): boolean {
+    if (
+      !this.rippingEnabled ||
+      this.solvedRoutes.length === 0 ||
+      this.fallbackRipCount >= this.maxFallbackRips
+    ) {
+      return false
+    }
+    const routeToRip = this.solvedRoutes.reduce((best, route) => {
+      return route.path.length > best.path.length ? route : best
+    }, this.solvedRoutes[0])
+
+    this.fallbackRipCount += 1
+    this.ripSolvedRoute(routeToRip)
+    if (this.currentConnection) {
+      this.unprocessedConnections.unshift(this.currentConnection)
+    }
+    this.beginNewConnection()
+    return true
   }
 }

@@ -16,6 +16,7 @@ import { computeCrossingAssignments } from "./computeCrossingAssignments"
 
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
   UNIT_OF_COST = "distance"
+  private connectionDistanceCache = new Map<string, number>()
 
   constructor(input: {
     inputGraph: HyperGraph | SerializedHyperGraph
@@ -27,7 +28,9 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
       rippingEnabled: true,
       ripCost: 100,
     })
-    this.MAX_ITERATIONS = 4000 + input.inputConnections.length * 500
+    this.MAX_ITERATIONS = 12000 + input.inputConnections.length * 2000
+    this.maxFallbackRips = Math.max(10, this.connections.length * 4)
+    this.sortConnectionsByDistance()
   }
 
   override estimateCostToEnd(port: JPort): number {
@@ -49,6 +52,9 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
     port1: JPort,
     port2: JPort,
   ): RegionPortAssignment[] {
+    if (!region.d.isPad && !region.d.isThroughJumper) {
+      return []
+    }
     const crossingAssignments = computeCrossingAssignments(region, port1, port2)
     // Filter out same-network crossings since those don't require ripping
     return crossingAssignments.filter(
@@ -58,7 +64,29 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
     )
   }
 
-  override routeSolvedHook(solvedRoute: SolvedRoute) {}
+  private sortConnectionsByDistance(): void {
+    this.unprocessedConnections.sort((a, b) => {
+      return this.getConnectionDistance(b) - this.getConnectionDistance(a)
+    })
+  }
+
+  private getConnectionDistance(connection: Connection): number {
+    const cacheKey = connection.connectionId
+    const cached = this.connectionDistanceCache.get(cacheKey)
+    if (cached !== undefined) return cached
+    const dist = distance(
+      connection.startRegion.d.center,
+      connection.endRegion.d.center,
+    )
+    this.connectionDistanceCache.set(cacheKey, dist)
+    return dist
+  }
+
+  override routeSolvedHook(solvedRoute: SolvedRoute) {
+    if (solvedRoute.requiredRip) {
+      this.sortConnectionsByDistance()
+    }
+  }
 
   override visualize(): GraphicsObject {
     return visualizeJumperGraphSolver(this)
