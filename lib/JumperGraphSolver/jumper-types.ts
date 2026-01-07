@@ -20,4 +20,9 @@ export interface JPort extends RegionPort {
 export type JumperGraph = {
   regions: JRegion[]
   ports: JPort[]
+  jumperLocations?: Array<{
+    center: { x: number; y: number }
+    orientation: "vertical" | "horizontal"
+    padRegions: JRegion[]
+  }>
 }
