@@ -2,10 +2,12 @@ import { generateJumperX4Grid } from "../lib/JumperGraphSolver/jumper-graph-gene
 import { createProblemFromBaseGraph } from "../lib/JumperGraphSolver/jumper-graph-generator/createProblemFromBaseGraph"
 import { JumperGraphSolver } from "../lib/JumperGraphSolver/JumperGraphSolver"
 
-const SAMPLES_PER_EPOCH = 500
+// Dataset sizes - frozen at start
+const TRAIN_SAMPLES = 500
+const VAL_SAMPLES = 200
+
 const NUM_EPOCHS = 50
-const LEARNING_RATE = 0.5
-const EPSILON = 0.02 // For finite difference gradient approximation
+const LEARNING_RATE = 0.01
 const MIN_CROSSINGS = 2
 const MAX_CROSSINGS = 12
 
@@ -28,6 +30,14 @@ interface Parameters {
   crossingPenaltySq: number
   ripCost: number
   greedyMultiplier: number
+}
+
+// Compute parameter-scaled epsilon
+// For larger params, use larger epsilon to actually affect decisions
+function getEpsilon(paramName: keyof Parameters, value: number): number {
+  const baseEps = 0.02
+  const scaledEps = 0.05 * Math.abs(value)
+  return Math.max(baseEps, scaledEps)
 }
 
 const createBaseGraph = (orientation: "vertical" | "horizontal" = "vertical") =>
@@ -60,14 +70,29 @@ function generateSampleConfigs(
   return configs
 }
 
-// Evaluate parameters on a set of samples, returns success rate (0-1)
+interface EvaluationResult {
+  // Continuous score: fraction of connections routed (0-1)
+  // Even unsolved puzzles contribute partial credit
+  continuousScore: number
+  // Binary success rate for reference
+  successRate: number
+  // Total connections routed / total connections across all samples
+  totalRouted: number
+  totalConnections: number
+}
+
+// Evaluate parameters on a set of samples
+// Returns continuous score (fraction routed) instead of binary solved/not-solved
 function evaluateParameters(
   params: Parameters,
   samples: { numCrossings: number; seed: number }[],
-): number {
-  let successes = 0
+): EvaluationResult {
+  let totalRouted = 0
+  let totalConnections = 0
+  let solvedCount = 0
 
   for (const { numCrossings, seed } of samples) {
+    let bestRoutedFraction = 0
     let solved = false
 
     for (const orientation of ["vertical", "horizontal"] as const) {
@@ -76,6 +101,8 @@ function evaluateParameters(
         numCrossings,
         randomSeed: seed,
       })
+
+      const totalConns = graphWithConnections.connections.length
 
       const solver = new JumperGraphSolver({
         inputGraph: {
@@ -95,25 +122,42 @@ function evaluateParameters(
 
       solver.solve()
 
+      // Compute fraction of connections routed (continuous metric)
+      const routedFraction = solver.solvedRoutes.length / totalConns
+
       if (solver.solved) {
         solved = true
+        bestRoutedFraction = 1.0
         break
+      } else if (routedFraction > bestRoutedFraction) {
+        bestRoutedFraction = routedFraction
       }
     }
 
+    // For total tracking, use the best attempt's fraction
+    // Estimate total connections from numCrossings (approx ceil((1+sqrt(1+8*n))/2))
+    const estimatedConns = Math.ceil((1 + Math.sqrt(1 + 8 * numCrossings)) / 2)
+    totalConnections += estimatedConns
+    totalRouted += bestRoutedFraction * estimatedConns
+
     if (solved) {
-      successes++
+      solvedCount++
     }
   }
 
-  return successes / samples.length
+  return {
+    continuousScore: totalRouted / totalConnections,
+    successRate: solvedCount / samples.length,
+    totalRouted,
+    totalConnections,
+  }
 }
 
-// Compute gradient using finite differences
+// Compute gradient using central differences: (f(x+eps)-f(x-eps)) / (2*eps)
+// This reduces noise compared to forward differences
 function computeGradient(
   params: Parameters,
   samples: { numCrossings: number; seed: number }[],
-  baseScore: number,
 ): Parameters {
   const gradient: Parameters = {
     portUsagePenalty: 0,
@@ -134,13 +178,23 @@ function computeGradient(
   ]
 
   for (const key of paramKeys) {
-    const perturbedParams = { ...params }
-    // Use proportional epsilon for larger values
-    const eps = key === "ripCost" ? EPSILON * 10 : EPSILON
-    perturbedParams[key] += eps
+    const eps = getEpsilon(key, params[key])
 
-    const perturbedScore = evaluateParameters(perturbedParams, samples)
-    gradient[key] = (perturbedScore - baseScore) / eps
+    // Forward evaluation: params + eps
+    const forwardParams = { ...params }
+    forwardParams[key] += eps
+    const forwardResult = evaluateParameters(forwardParams, samples)
+
+    // Backward evaluation: params - eps
+    const backwardParams = { ...params }
+    backwardParams[key] = Math.max(0.001, backwardParams[key] - eps) // Keep positive
+    const backwardResult = evaluateParameters(backwardParams, samples)
+
+    // Central difference
+    const actualEps = forwardParams[key] - backwardParams[key]
+    gradient[key] =
+      (forwardResult.continuousScore - backwardResult.continuousScore) /
+      actualEps
   }
 
   return gradient
@@ -154,7 +208,7 @@ function updateParameters(
 ): Parameters {
   const newParams: Parameters = {
     portUsagePenalty: Math.max(
-      0,
+      0.01,
       params.portUsagePenalty + lr * gradient.portUsagePenalty,
     ),
     portUsagePenaltySq: Math.max(
@@ -162,17 +216,17 @@ function updateParameters(
       params.portUsagePenaltySq + lr * gradient.portUsagePenaltySq,
     ),
     crossingPenalty: Math.max(
-      0,
+      0.1,
       params.crossingPenalty + lr * gradient.crossingPenalty,
     ),
     crossingPenaltySq: Math.max(
       0,
       params.crossingPenaltySq + lr * gradient.crossingPenaltySq,
     ),
-    ripCost: Math.max(1, params.ripCost + lr * gradient.ripCost * 10), // Scale ripCost updates
+    ripCost: Math.max(1, params.ripCost + lr * gradient.ripCost),
     greedyMultiplier: Math.max(
       0.1,
-      params.greedyMultiplier + lr * gradient.greedyMultiplier,
+      Math.min(2.0, params.greedyMultiplier + lr * gradient.greedyMultiplier),
     ),
   }
   return newParams
@@ -203,11 +257,27 @@ function formatGradient(gradient: Parameters): string {
 async function main() {
   console.log("JumperGraphSolver Parameter Optimization via Gradient Descent")
   console.log("=".repeat(70))
-  console.log(`Samples per epoch: ${SAMPLES_PER_EPOCH}`)
+  console.log(`Training samples: ${TRAIN_SAMPLES} (frozen)`)
+  console.log(`Validation samples: ${VAL_SAMPLES} (frozen)`)
   console.log(`Number of epochs: ${NUM_EPOCHS}`)
   console.log(`Learning rate: ${LEARNING_RATE}`)
-  console.log(`Epsilon for gradient: ${EPSILON}`)
+  console.log(
+    "Using: central differences, parameter-scaled epsilon, continuous proxy",
+  )
   console.log("=".repeat(70))
+  console.log()
+
+  // === FROZEN DATASETS ===
+  // Generate train and val samples ONCE at the start
+  console.log("Generating frozen datasets...")
+  const trainSamples = generateSampleConfigs(TRAIN_SAMPLES)
+  const valSamples = generateSampleConfigs(VAL_SAMPLES)
+  console.log(
+    `  Train: ${trainSamples.length} samples (seeds ${trainSamples[0].seed}-${trainSamples[trainSamples.length - 1].seed})`,
+  )
+  console.log(
+    `  Val: ${valSamples.length} samples (seeds ${valSamples[0].seed}-${valSamples[valSamples.length - 1].seed})`,
+  )
   console.log()
 
   // Initial parameters (current defaults)
@@ -224,51 +294,71 @@ async function main() {
   console.log(formatParams(params))
   console.log()
 
+  // Evaluate initial performance
+  console.log("Evaluating initial parameters...")
+  const initialTrainResult = evaluateParameters(params, trainSamples)
+  const initialValResult = evaluateParameters(params, valSamples)
+  console.log(
+    `  Train: ${(initialTrainResult.continuousScore * 100).toFixed(2)}% routed, ${(initialTrainResult.successRate * 100).toFixed(2)}% solved`,
+  )
+  console.log(
+    `  Val:   ${(initialValResult.continuousScore * 100).toFixed(2)}% routed, ${(initialValResult.successRate * 100).toFixed(2)}% solved`,
+  )
+  console.log()
+
   let bestParams = { ...params }
-  let bestScore = 0
+  let bestValScore = initialValResult.continuousScore
 
   for (let epoch = 0; epoch < NUM_EPOCHS; epoch++) {
     const startTime = performance.now()
 
-    // Generate unique samples for this epoch
-    const samples = generateSampleConfigs(SAMPLES_PER_EPOCH)
-
-    // Evaluate current parameters
-    const currentScore = evaluateParameters(params, samples)
-
-    // Compute gradient
-    const gradient = computeGradient(params, samples, currentScore)
+    // Compute gradient on training set using central differences
+    const gradient = computeGradient(params, trainSamples)
 
     // Update parameters
     const prevParams = { ...params }
     params = updateParameters(params, gradient, LEARNING_RATE)
 
-    // Compute delta (parameter changes)
-    const delta: Parameters = {
-      portUsagePenalty: params.portUsagePenalty - prevParams.portUsagePenalty,
-      portUsagePenaltySq:
-        params.portUsagePenaltySq - prevParams.portUsagePenaltySq,
-      crossingPenalty: params.crossingPenalty - prevParams.crossingPenalty,
-      crossingPenaltySq:
-        params.crossingPenaltySq - prevParams.crossingPenaltySq,
-      ripCost: params.ripCost - prevParams.ripCost,
-      greedyMultiplier: params.greedyMultiplier - prevParams.greedyMultiplier,
-    }
+    // Evaluate on both train and val (using continuous score)
+    const trainResult = evaluateParameters(params, trainSamples)
+    const valResult = evaluateParameters(params, valSamples)
 
-    // Track best
-    if (currentScore > bestScore) {
-      bestScore = currentScore
-      bestParams = { ...prevParams }
+    // Track best based on validation score
+    if (valResult.continuousScore > bestValScore) {
+      bestValScore = valResult.continuousScore
+      bestParams = { ...params }
     }
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1)
 
     console.log(
-      `Epoch ${(epoch + 1).toString().padStart(3)}/${NUM_EPOCHS} | Success rate: ${(currentScore * 100).toFixed(2)}% | Time: ${duration}s`,
+      `Epoch ${(epoch + 1).toString().padStart(3)}/${NUM_EPOCHS} | ` +
+        `Train: ${(trainResult.continuousScore * 100).toFixed(2)}% routed (${(trainResult.successRate * 100).toFixed(1)}% solved) | ` +
+        `Val: ${(valResult.continuousScore * 100).toFixed(2)}% routed (${(valResult.successRate * 100).toFixed(1)}% solved) | ` +
+        `Time: ${duration}s`,
     )
-    console.log(`  Parameters: ${formatParams(prevParams)}`)
-    console.log(`  Gradient:   ${formatGradient(gradient)}`)
-    console.log(`  Delta:      ${formatParams(delta)}`)
+    console.log(`  Gradient: ${formatGradient(gradient)}`)
+
+    // Show epsilon values used
+    const epsilons = {
+      portUsagePenalty: getEpsilon(
+        "portUsagePenalty",
+        prevParams.portUsagePenalty,
+      ),
+      crossingPenalty: getEpsilon(
+        "crossingPenalty",
+        prevParams.crossingPenalty,
+      ),
+      ripCost: getEpsilon("ripCost", prevParams.ripCost),
+      greedyMultiplier: getEpsilon(
+        "greedyMultiplier",
+        prevParams.greedyMultiplier,
+      ),
+    }
+    console.log(
+      `  Epsilon: port=${epsilons.portUsagePenalty.toFixed(3)}, cross=${epsilons.crossingPenalty.toFixed(3)}, rip=${epsilons.ripCost.toFixed(3)}, greedy=${epsilons.greedyMultiplier.toFixed(3)}`,
+    )
+    console.log(`  Params:  ${formatParams(params)}`)
     console.log()
   }
 
@@ -276,13 +366,25 @@ async function main() {
   console.log("Optimization Complete!")
   console.log("=".repeat(70))
   console.log()
-  console.log(`Best success rate: ${(bestScore * 100).toFixed(2)}%`)
-  console.log(`Best parameters:`)
-  console.log(formatParams(bestParams))
-  console.log()
-  console.log("Final parameters after all epochs:")
+
+  // Final evaluation on validation set
+  const finalValResult = evaluateParameters(params, valSamples)
+  const bestValResult = evaluateParameters(bestParams, valSamples)
+
+  console.log("Final parameters (last epoch):")
   console.log(formatParams(params))
+  console.log(
+    `  Val: ${(finalValResult.continuousScore * 100).toFixed(2)}% routed, ${(finalValResult.successRate * 100).toFixed(2)}% solved`,
+  )
   console.log()
+
+  console.log("Best parameters (by validation score):")
+  console.log(formatParams(bestParams))
+  console.log(
+    `  Val: ${(bestValResult.continuousScore * 100).toFixed(2)}% routed, ${(bestValResult.successRate * 100).toFixed(2)}% solved`,
+  )
+  console.log()
+
   console.log(`Total unique seeds used: ${usedSeeds.size}`)
 }
 

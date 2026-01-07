@@ -42,13 +42,17 @@ const verticalGraph = createBaseGraph("vertical")
 const verticalBounds = calculateGraphBounds(verticalGraph.regions)
 const vWidth = verticalBounds.maxX - verticalBounds.minX
 const vHeight = verticalBounds.maxY - verticalBounds.minY
-console.log(`Graph size (vertical): ${vWidth.toFixed(1)}x${vHeight.toFixed(1)}mm`)
+console.log(
+  `Graph size (vertical): ${vWidth.toFixed(1)}x${vHeight.toFixed(1)}mm`,
+)
 
 const horizontalGraph = createBaseGraph("horizontal")
 const horizontalBounds = calculateGraphBounds(horizontalGraph.regions)
 const hWidth = horizontalBounds.maxX - horizontalBounds.minX
 const hHeight = horizontalBounds.maxY - horizontalBounds.minY
-console.log(`Graph size (horizontal): ${hWidth.toFixed(1)}x${hHeight.toFixed(1)}mm`)
+console.log(
+  `Graph size (horizontal): ${hWidth.toFixed(1)}x${hHeight.toFixed(1)}mm`,
+)
 
 console.log("Benchmark: 2x2 1206x4 Jumper Grid Solver (Both Orientations)")
 console.log("=".repeat(50))
@@ -112,14 +116,15 @@ for (
   results.push({ numConnections: numCrossings, successRate, successes })
 
   const med = median(iterationsTaken)
-  const p90 = percentile(iterationsTaken, 90)
+  const p95 = percentile(iterationsTaken, 95)
+  const p99 = percentile(iterationsTaken, 99)
   const medDuration = median(solverDurations)
   console.log(
     `Crossings: ${numCrossings.toString().padStart(2)} | ` +
       `Success: ${successes.toString().padStart(3)}/${SAMPLES_PER_CROSSING_COUNT} | ` +
       `Rate: ${successRate.toFixed(1).padStart(5)}%`,
     `  Med iters: ${med?.toFixed(0) ?? "N/A"}`,
-    `  P90 iters: ${p90?.toFixed(0) ?? "N/A"}`,
+    `  P95: ${p95?.toFixed(0) ?? "N/A"}, P99: ${p99?.toFixed(0) ?? "N/A"}`,
     `  Med time: ${medDuration !== undefined ? medDuration.toFixed(1) + "ms" : "N/A"}`,
   )
 }

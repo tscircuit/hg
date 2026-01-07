@@ -87,13 +87,13 @@ for (
   results.push({ numConnections: numCrossings, successRate, successes })
 
   const med = median(iterationsTaken)
-  const p90 = percentile(iterationsTaken, 90)
+  const p95 = percentile(iterationsTaken, 90)
+  const p99 = percentile(iterationsTaken, 99)
   console.log(
     `Crossings: ${numCrossings.toString().padStart(2)} | ` +
       `Success: ${successes.toString().padStart(3)}/${SAMPLES_PER_CROSSING_COUNT} | ` +
       `Rate: ${successRate.toFixed(1).padStart(5)}%`,
-    `  Med iters: ${med?.toFixed(0) ?? "N/A"}`,
-    `  P90 iters: ${p90?.toFixed(0) ?? "N/A"}`,
+    `  P50:${med?.toFixed(0) ?? "N/A"} P95:${p95?.toFixed(0) ?? "N/A"} P99:${p99?.toFixed(0) ?? "N/A"}`,
   )
 }
 

@@ -17,13 +17,13 @@ import { computeCrossingAssignments } from "./computeCrossingAssignments"
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
   UNIT_OF_COST = "distance"
 
-  portUsagePenalty = 0.3
-  portUsagePenaltySq = 0.1
-  crossingPenalty = 6
-  crossingPenaltySq = 0.1
+  portUsagePenalty = 0.197
+  portUsagePenaltySq = 0
+  crossingPenalty = 6.007
+  crossingPenaltySq = 0.111
   override ripCost = 40
   baseMaxIterations = 4000
-  additionalMaxIterationsPerConnection = 200
+  additionalMaxIterationsPerConnection = 2000
 
   constructor(input: {
     inputGraph: HyperGraph | SerializedHyperGraph
