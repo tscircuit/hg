@@ -72,9 +72,44 @@ export const applyTransformToGraph = (
     return newPort
   })
 
+  // Transform jumper locations if present
+  const transformedJumperLocations = graph.jumperLocations?.map((loc) => {
+    const newCenter = applyToPoint(matrix, loc.center)
+
+    // Map pad regions to their transformed versions
+    const newPadRegions = loc.padRegions.map(
+      (region) => regionMap.get(region as JRegion)!,
+    )
+
+    // Determine new orientation after transformation
+    // For a 90-degree rotation, horizontal becomes vertical and vice versa
+    // We detect rotation by checking if the matrix causes a 90-degree rotation
+    // by applying it to a unit vector
+    const unitX = applyToPoint(matrix, { x: 1, y: 0 })
+    const origin = applyToPoint(matrix, { x: 0, y: 0 })
+    const dx = unitX.x - origin.x
+    const dy = unitX.y - origin.y
+    // If the transformed X axis is now primarily vertical, we've rotated 90 degrees
+    const isRotated90 = Math.abs(dy) > Math.abs(dx)
+    const newOrientation: "vertical" | "horizontal" = isRotated90
+      ? loc.orientation === "horizontal"
+        ? "vertical"
+        : "horizontal"
+      : loc.orientation
+
+    return {
+      center: newCenter,
+      orientation: newOrientation,
+      padRegions: newPadRegions,
+    }
+  })
+
   return {
     regions: transformedRegions,
     ports: transformedPorts,
+    ...(transformedJumperLocations && {
+      jumperLocations: transformedJumperLocations,
+    }),
   }
 }
 

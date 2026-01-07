@@ -117,6 +117,10 @@ export const generateJumperX4Grid = ({
     rightBP65: JRegion | null
   }[][] = []
 
+  // Store jumper locations for each cell
+  const collectedJumperLocations: NonNullable<JumperGraph["jumperLocations"]> =
+    []
+
   // Helper to create a region
   const createRegion = (
     id: string,
@@ -382,6 +386,16 @@ export const generateJumperX4Grid = ({
         throughjumper3,
         throughjumper4,
       )
+
+      // Add jumper location for this cell (1 X4 jumper component per cell with 8 pads)
+      // Center is the midpoint of all 8 pads
+      const jumperCenterX = (p1CenterX + p8CenterX) / 2
+      const jumperCenterY = (p1CenterY + p4CenterY) / 2
+      collectedJumperLocations.push({
+        center: { x: jumperCenterX, y: jumperCenterY },
+        orientation: "vertical",
+        padRegions: [pad1, pad2, pad3, pad4, pad5, pad6, pad7, pad8],
+      })
 
       // Between-pad regions (created when regionsBetweenPads is true)
       // Left side: between P1-P2, P2-P3, P3-P4
@@ -942,7 +956,11 @@ export const generateJumperX4Grid = ({
     }
   }
 
-  let graph: JumperGraph = { regions, ports }
+  let graph: JumperGraph = {
+    regions,
+    ports,
+    jumperLocations: collectedJumperLocations,
+  }
 
   // Apply transformations based on orientation, center, and bounds
   const needsRotation = orientation === "horizontal"
