@@ -831,24 +831,26 @@ export const generateJumperX4Grid = ({
           )
         }
         // T-T connection between horizontally adjacent cells (first row only)
+        // This is a vertical boundary, so use Y point count for outer edge
         if (top && prevCell.top) {
           ports.push(
             ...createMultiplePorts(
               `cell_${row}_${col - 1}->cell_${row}_${col}:T-T`,
               prevCell.top,
               top,
-              innerRowChannelPointCount,
+              effectiveOuterChannelYPoints,
             ),
           )
         }
         // B-B connection between horizontally adjacent cells
+        // This is a vertical boundary; use Y points for outer edge (last row), inner points otherwise
         if (bottom && prevCell.bottom) {
           ports.push(
             ...createMultiplePorts(
               `cell_${row}_${col - 1}->cell_${row}_${col}:B-B`,
               prevCell.bottom,
               bottom,
-              innerRowChannelPointCount,
+              isLastRow ? effectiveOuterChannelYPoints : innerRowChannelPointCount,
             ),
           )
         }
