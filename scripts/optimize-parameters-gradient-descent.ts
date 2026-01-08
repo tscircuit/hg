@@ -91,12 +91,17 @@ interface EvaluationResult {
 function evaluateParameters(
   params: Parameters,
   samples: { numCrossings: number; seed: number }[],
+  progressLabel?: string,
 ): EvaluationResult {
   let totalRouted = 0
   let totalConnections = 0
   let solvedCount = 0
 
-  for (const { numCrossings, seed } of samples) {
+  for (let i = 0; i < samples.length; i++) {
+    const { numCrossings, seed } = samples[i]
+    if (progressLabel) {
+      process.stdout.write(`\r${progressLabel}: ${i + 1}/${samples.length}`)
+    }
     let bestRoutedFraction = 0
     let solved = false
 
@@ -150,6 +155,10 @@ function evaluateParameters(
     }
   }
 
+  if (progressLabel) {
+    process.stdout.write("\r" + " ".repeat(50) + "\r")
+  }
+
   return {
     continuousScore: totalRouted / totalConnections,
     successRate: solvedCount / samples.length,
@@ -163,6 +172,7 @@ function evaluateParameters(
 function computeGradient(
   params: Parameters,
   samples: { numCrossings: number; seed: number }[],
+  epoch?: number,
 ): Parameters {
   const gradient: Parameters = {
     portUsagePenalty: 0,
@@ -184,16 +194,25 @@ function computeGradient(
 
   for (const key of paramKeys) {
     const eps = getEpsilon(key, params[key])
+    const prefix = epoch !== undefined ? `Epoch ${epoch} ` : ""
 
     // Forward evaluation: params + eps
     const forwardParams = { ...params }
     forwardParams[key] += eps
-    const forwardResult = evaluateParameters(forwardParams, samples)
+    const forwardResult = evaluateParameters(
+      forwardParams,
+      samples,
+      `${prefix}Grad ${key}+`,
+    )
 
     // Backward evaluation: params - eps
     const backwardParams = { ...params }
     backwardParams[key] = Math.max(0.001, backwardParams[key] - eps) // Keep positive
-    const backwardResult = evaluateParameters(backwardParams, samples)
+    const backwardResult = evaluateParameters(
+      backwardParams,
+      samples,
+      `${prefix}Grad ${key}-`,
+    )
 
     // Central difference
     const actualEps = forwardParams[key] - backwardParams[key]
@@ -296,8 +315,8 @@ async function main() {
 
   // Evaluate initial performance
   console.log("Evaluating initial parameters...")
-  const initialTrainResult = evaluateParameters(params, trainSamples)
-  const initialValResult = evaluateParameters(params, valSamples)
+  const initialTrainResult = evaluateParameters(params, trainSamples, "Train")
+  const initialValResult = evaluateParameters(params, valSamples, "Val")
   console.log(
     `  Train: ${(initialTrainResult.continuousScore * 100).toFixed(2)}% routed, ${(initialTrainResult.successRate * 100).toFixed(2)}% solved`,
   )
@@ -325,7 +344,7 @@ async function main() {
     const startTime = performance.now()
 
     // Compute gradient on training set using central differences
-    const gradient = computeGradient(params, trainSamples)
+    const gradient = computeGradient(params, trainSamples, epoch + 1)
 
     // Update velocity with momentum
     const paramKeys: (keyof Parameters)[] = [
@@ -345,8 +364,16 @@ async function main() {
     params = updateParameters(params, velocity, learningRate)
 
     // Evaluate on both train and val (using continuous score)
-    const trainResult = evaluateParameters(params, trainSamples)
-    const valResult = evaluateParameters(params, valSamples)
+    const trainResult = evaluateParameters(
+      params,
+      trainSamples,
+      `Epoch ${epoch + 1} Train`,
+    )
+    const valResult = evaluateParameters(
+      params,
+      valSamples,
+      `Epoch ${epoch + 1} Val`,
+    )
 
     // Track best based on validation score
     if (valResult.continuousScore > bestValScore) {
@@ -397,8 +424,8 @@ async function main() {
   console.log()
 
   // Final evaluation on validation set
-  const finalValResult = evaluateParameters(params, valSamples)
-  const bestValResult = evaluateParameters(bestParams, valSamples)
+  const finalValResult = evaluateParameters(params, valSamples, "Final Val")
+  const bestValResult = evaluateParameters(bestParams, valSamples, "Best Val")
 
   console.log("Final parameters (last epoch):")
   console.log(formatParams(params))
