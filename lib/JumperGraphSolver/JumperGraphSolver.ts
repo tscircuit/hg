@@ -53,6 +53,11 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
   }
 
   override estimateCostToEnd(port: JPort): number {
+    /*
+     * A more idealized cost to end would compute how many "hops" remain- this
+     * would make the graph indifferent to sizes of regions which is currently
+     * an issue.
+     */
     return distance(port.d, this.currentEndRegion!.d.center)
   }
   override getPortUsagePenalty(port: JPort): number {
