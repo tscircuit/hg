@@ -9,8 +9,10 @@ import {
 const TRAIN_SAMPLES = 500
 const VAL_SAMPLES = 200
 
-const NUM_EPOCHS = 50
-const LEARNING_RATE = 0.01
+const NUM_EPOCHS = 100
+const INITIAL_LEARNING_RATE = 0.5
+const LR_DECAY = 0.95 // Multiply LR by this each epoch
+const MOMENTUM = 0.9 // Momentum coefficient for smoothing updates
 const MIN_CROSSINGS = 2
 const MAX_CROSSINGS = 12
 
@@ -263,7 +265,9 @@ async function main() {
   console.log(`Training samples: ${TRAIN_SAMPLES} (frozen)`)
   console.log(`Validation samples: ${VAL_SAMPLES} (frozen)`)
   console.log(`Number of epochs: ${NUM_EPOCHS}`)
-  console.log(`Learning rate: ${LEARNING_RATE}`)
+  console.log(`Initial learning rate: ${INITIAL_LEARNING_RATE}`)
+  console.log(`LR decay: ${LR_DECAY} per epoch`)
+  console.log(`Momentum: ${MOMENTUM}`)
   console.log(
     "Using: central differences, parameter-scaled epsilon, continuous proxy",
   )
@@ -305,15 +309,40 @@ async function main() {
   let bestParams = { ...params }
   let bestValScore = initialValResult.continuousScore
 
+  // Initialize velocity for momentum
+  let velocity: Parameters = {
+    portUsagePenalty: 0,
+    portUsagePenaltySq: 0,
+    crossingPenalty: 0,
+    crossingPenaltySq: 0,
+    ripCost: 0,
+    greedyMultiplier: 0,
+  }
+
+  let learningRate = INITIAL_LEARNING_RATE
+
   for (let epoch = 0; epoch < NUM_EPOCHS; epoch++) {
     const startTime = performance.now()
 
     // Compute gradient on training set using central differences
     const gradient = computeGradient(params, trainSamples)
 
-    // Update parameters
+    // Update velocity with momentum
+    const paramKeys: (keyof Parameters)[] = [
+      "portUsagePenalty",
+      "portUsagePenaltySq",
+      "crossingPenalty",
+      "crossingPenaltySq",
+      "ripCost",
+      "greedyMultiplier",
+    ]
+    for (const key of paramKeys) {
+      velocity[key] = MOMENTUM * velocity[key] + gradient[key]
+    }
+
+    // Update parameters using velocity (momentum-based gradient)
     const prevParams = { ...params }
-    params = updateParameters(params, gradient, LEARNING_RATE)
+    params = updateParameters(params, velocity, learningRate)
 
     // Evaluate on both train and val (using continuous score)
     const trainResult = evaluateParameters(params, trainSamples)
@@ -331,6 +360,7 @@ async function main() {
       `Epoch ${(epoch + 1).toString().padStart(3)}/${NUM_EPOCHS} | ` +
         `Train: ${(trainResult.continuousScore * 100).toFixed(2)}% routed (${(trainResult.successRate * 100).toFixed(1)}% solved) | ` +
         `Val: ${(valResult.continuousScore * 100).toFixed(2)}% routed (${(valResult.successRate * 100).toFixed(1)}% solved) | ` +
+        `LR: ${learningRate.toFixed(4)} | ` +
         `Time: ${duration}s`,
     )
     console.log(`  Gradient: ${formatGradient(gradient)}`)
@@ -356,6 +386,9 @@ async function main() {
     )
     console.log(`  Params:  ${formatParams(params)}`)
     console.log()
+
+    // Decay learning rate
+    learningRate *= LR_DECAY
   }
 
   console.log("=".repeat(70))
