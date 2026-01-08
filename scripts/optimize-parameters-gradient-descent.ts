@@ -14,7 +14,7 @@ const INITIAL_LEARNING_RATE = 0.5
 const LR_DECAY = 0.95 // Multiply LR by this each epoch
 const MOMENTUM = 0.9 // Momentum coefficient for smoothing updates
 const MIN_CROSSINGS = 2
-const MAX_CROSSINGS = 12
+const MAX_CROSSINGS = 24
 
 // Track used seeds globally to never repeat
 const usedSeeds = new Set<number>()
@@ -45,32 +45,49 @@ function getEpsilon(paramName: keyof Parameters, value: number): number {
   return Math.max(baseEps, scaledEps)
 }
 
-const createBaseGraph = (orientation: "vertical" | "horizontal" = "vertical") =>
+const createBaseGraph = (
+  orientation: "vertical" | "horizontal" = "vertical",
+  rows: 1 | 2 = 1,
+  cols: 1 | 2 = 1,
+) =>
   generateJumperX4Grid({
-    cols: 1,
-    rows: 1,
+    cols,
+    rows,
     marginX: 1.2,
     marginY: 1.2,
     outerPaddingX: 2,
     outerPaddingY: 2,
     innerColChannelPointCount: 3,
     innerRowChannelPointCount: 3,
-    outerChannelXPointCount: 5,
-    outerChannelYPointCount: 5,
+    outerChannelXPointCount: 3,
+    outerChannelYPointCount: 3,
     regionsBetweenPads: true,
     orientation,
   })
 
-// Generate sample configurations (crossing count + seed)
+// Generate sample configurations (crossing count + seed + grid size)
 function generateSampleConfigs(
   count: number,
-): { numCrossings: number; seed: number }[] {
-  const configs: { numCrossings: number; seed: number }[] = []
+): { numCrossings: number; seed: number; rows: 1 | 2; cols: 1 | 2 }[] {
+  const configs: {
+    numCrossings: number
+    seed: number
+    rows: 1 | 2
+    cols: 1 | 2
+  }[] = []
+  const gridSizes: [1 | 2, 1 | 2][] = [
+    [1, 1],
+    [1, 2],
+    [2, 1],
+    [2, 2],
+  ]
   for (let i = 0; i < count; i++) {
     // Distribute crossings evenly across range
     const numCrossings =
       MIN_CROSSINGS + (i % (MAX_CROSSINGS - MIN_CROSSINGS + 1))
-    configs.push({ numCrossings, seed: getUniqueSeed() })
+    // Cycle through grid sizes
+    const [rows, cols] = gridSizes[i % gridSizes.length]
+    configs.push({ numCrossings, seed: getUniqueSeed(), rows, cols })
   }
   return configs
 }
@@ -90,7 +107,7 @@ interface EvaluationResult {
 // Returns continuous score (fraction routed) instead of binary solved/not-solved
 function evaluateParameters(
   params: Parameters,
-  samples: { numCrossings: number; seed: number }[],
+  samples: { numCrossings: number; seed: number; rows: 1 | 2; cols: 1 | 2 }[],
   progressLabel?: string,
 ): EvaluationResult {
   let totalRouted = 0
@@ -98,7 +115,7 @@ function evaluateParameters(
   let solvedCount = 0
 
   for (let i = 0; i < samples.length; i++) {
-    const { numCrossings, seed } = samples[i]
+    const { numCrossings, seed, rows, cols } = samples[i]
     if (progressLabel) {
       process.stdout.write(`\r${progressLabel}: ${i + 1}/${samples.length}`)
     }
@@ -107,7 +124,7 @@ function evaluateParameters(
 
     for (const orientation of ["vertical", "horizontal"] as const) {
       const graphWithConnections = createProblemFromBaseGraph({
-        baseGraph: createBaseGraph(orientation),
+        baseGraph: createBaseGraph(orientation, rows, cols),
         numCrossings,
         randomSeed: seed,
       })
@@ -171,7 +188,7 @@ function evaluateParameters(
 // This reduces noise compared to forward differences
 function computeGradient(
   params: Parameters,
-  samples: { numCrossings: number; seed: number }[],
+  samples: { numCrossings: number; seed: number; rows: 1 | 2; cols: 1 | 2 }[],
   epoch?: number,
 ): Parameters {
   const gradient: Parameters = {
