@@ -50,15 +50,52 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
     this.MAX_ITERATIONS =
       this.baseMaxIterations +
       input.inputConnections.length * this.additionalMaxIterationsPerConnection
+
+    this.populateDistanceToEndMaps()
+  }
+
+  private populateDistanceToEndMaps() {
+    // Get all unique end regions from connections
+    const endRegions = new Set(this.connections.map((c) => c.endRegion))
+
+    // For each end region, compute hop distances from all ports using BFS
+    for (const endRegion of endRegions) {
+      const regionDistanceMap = new Map<string, number>()
+      const queue: Array<{ region: JRegion; distance: number }> = []
+
+      regionDistanceMap.set(endRegion.regionId, 0)
+      queue.push({ region: endRegion as JRegion, distance: 0 })
+
+      while (queue.length > 0) {
+        const { region, distance: dist } = queue.shift()!
+
+        for (const port of region.ports) {
+          const otherRegion = (
+            port.region1 === region ? port.region2 : port.region1
+          ) as JRegion
+          if (!regionDistanceMap.has(otherRegion.regionId)) {
+            regionDistanceMap.set(otherRegion.regionId, dist + 1)
+            queue.push({ region: otherRegion, distance: dist + 1 })
+          }
+        }
+      }
+
+      // Populate each port's distanceToEndMap for this end region
+      for (const port of this.graph.ports) {
+        if (!port.distanceToEndMap) {
+          port.distanceToEndMap = {}
+        }
+        const d1 = regionDistanceMap.get(port.region1.regionId) ?? Infinity
+        const d2 = regionDistanceMap.get(port.region2.regionId) ?? Infinity
+        port.distanceToEndMap[endRegion.regionId] = Math.min(d1, d2)
+      }
+    }
   }
 
   override estimateCostToEnd(port: JPort): number {
-    /*
-     * A more idealized cost to end would compute how many "hops" remain- this
-     * would make the graph indifferent to sizes of regions which is currently
-     * an issue.
-     */
-    return distance(port.d, this.currentEndRegion!.d.center)
+    const endRegionId = this.currentEndRegion!.regionId
+    const hopDistance = port.distanceToEndMap![endRegionId]!
+    return hopDistance
   }
   override getPortUsagePenalty(port: JPort): number {
     const ripCount = port.ripCount ?? 0
