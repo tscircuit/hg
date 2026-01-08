@@ -15,12 +15,12 @@ import { computeDifferentNetCrossings } from "./computeDifferentNetCrossings"
 import { computeCrossingAssignments } from "./computeCrossingAssignments"
 
 export const JUMPER_GRAPH_SOLVER_DEFAULTS = {
-  portUsagePenalty: 0.197,
-  portUsagePenaltySq: 0,
-  crossingPenalty: 6.007,
-  crossingPenaltySq: 0.111,
-  ripCost: 40,
-  greedyMultiplier: 0.45,
+  portUsagePenalty: 0.06393718451067248,
+  portUsagePenaltySq: 0.06194817180037216,
+  crossingPenalty: 6.0761550028071145,
+  crossingPenaltySq: 0.1315528159128946,
+  ripCost: 40.00702225250195,
+  greedyMultiplier: 0.4316469416682083,
 }
 
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
