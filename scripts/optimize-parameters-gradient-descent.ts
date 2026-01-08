@@ -14,7 +14,7 @@ const INITIAL_LEARNING_RATE = 0.5
 const LR_DECAY = 0.95 // Multiply LR by this each epoch
 const MOMENTUM = 0.9 // Momentum coefficient for smoothing updates
 const MIN_CROSSINGS = 2
-const MAX_CROSSINGS = 24
+const MAX_CROSSINGS = 21
 
 // Track used seeds globally to never repeat
 const usedSeeds = new Set<number>()
@@ -75,8 +75,14 @@ function generateSampleConfigs(
     rows: 1 | 2
     cols: 1 | 2
   }[] = []
-  const gridSizes: [1 | 2, 1 | 2][] = [
+  const allGridSizes: [1 | 2, 1 | 2][] = [
     [1, 1],
+    [1, 2],
+    [2, 1],
+    [2, 2],
+  ]
+  // Grid sizes for >8 crossings (must have at least 2 rows or 2 cols)
+  const largeGridSizes: [1 | 2, 1 | 2][] = [
     [1, 2],
     [2, 1],
     [2, 2],
@@ -85,6 +91,8 @@ function generateSampleConfigs(
     // Distribute crossings evenly across range
     const numCrossings =
       MIN_CROSSINGS + (i % (MAX_CROSSINGS - MIN_CROSSINGS + 1))
+    // Use restricted grid sizes for >8 crossings
+    const gridSizes = numCrossings > 8 ? largeGridSizes : allGridSizes
     // Cycle through grid sizes
     const [rows, cols] = gridSizes[i % gridSizes.length]
     configs.push({ numCrossings, seed: getUniqueSeed(), rows, cols })
@@ -255,8 +263,7 @@ function updateParameters(
     crossingPenaltySq:
       params.crossingPenaltySq + lr * gradient.crossingPenaltySq,
     ripCost: params.ripCost + lr * gradient.ripCost,
-    greedyMultiplier:
-      params.greedyMultiplier + lr * gradient.greedyMultiplier,
+    greedyMultiplier: params.greedyMultiplier + lr * gradient.greedyMultiplier,
   }
   return newParams
 }
