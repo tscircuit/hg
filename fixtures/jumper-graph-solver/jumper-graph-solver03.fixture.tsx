@@ -9,6 +9,9 @@ export default () => {
   const [rows, setRows] = useState(1)
   const [numCrossings, setNumConnections] = useState(2)
   const [randomSeed, setRandomSeed] = useState(42)
+  const [orientation, setOrientation] = useState<"horizontal" | "vertical">(
+    "horizontal",
+  )
 
   const baseGraph = generateJumperX4Grid({
     cols,
@@ -20,6 +23,7 @@ export default () => {
     innerColChannelPointCount: 3,
     innerRowChannelPointCount: 3,
     regionsBetweenPads: true,
+    orientation
   })
 
   const graphWithConnections = createProblemFromBaseGraph({
@@ -70,6 +74,18 @@ export default () => {
             onChange={(e) => setRandomSeed(Number(e.target.value))}
             style={{ width: 80 }}
           />
+        </label>{" "}
+        <label>
+          Orientation:{" "}
+          <select
+            value={orientation}
+            onChange={(e) =>
+              setOrientation(e.target.value as "horizontal" | "vertical")
+            }
+          >
+            <option value="horizontal">horizontal</option>
+            <option value="vertical">vertical</option>
+          </select>
         </label>
       </div>
       <GenericSolverDebugger
