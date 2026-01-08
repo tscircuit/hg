@@ -89,6 +89,8 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
 
   override routeSolvedHook(solvedRoute: SolvedRoute) {}
 
+  override routeStartedHook(connection: Connection) {}
+
   override visualize(): GraphicsObject {
     return visualizeJumperGraphSolver(this)
   }

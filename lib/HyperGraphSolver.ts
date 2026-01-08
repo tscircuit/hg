@@ -285,6 +285,14 @@ export class HyperGraphSolver<
    */
   routeSolvedHook(solvedRoute: SolvedRoute) {}
 
+  /**
+   * OPTIONALLY OVERRIDE THIS
+   *
+   * You can override this to perform actions when a new route begins, e.g.
+   * you may want to log or track which connection is being processed.
+   */
+  routeStartedHook(connection: Connection) {}
+
   ripSolvedRoute(solvedRoute: SolvedRoute) {
     for (const port of solvedRoute.path.map((candidate) => candidate.port)) {
       port.ripCount = (port.ripCount ?? 0) + 1
@@ -305,6 +313,7 @@ export class HyperGraphSolver<
     this.currentEndRegion = this.currentConnection.endRegion
     this.candidateQueue = new PriorityQueue<Candidate>()
     this.visitedPointsForCurrentConnection.clear()
+    this.routeStartedHook(this.currentConnection)
     for (const port of this.currentConnection.startRegion.ports) {
       this.candidateQueue.enqueue({
         port,

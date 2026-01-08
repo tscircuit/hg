@@ -16,6 +16,12 @@ export type RegionPort = {
    * ports that are likely to block off connections
    */
   ripCount?: number
+
+  /**
+   * Optionally can be used by solvers to keep track of the distance to
+   * each end era.
+   */
+  distanceToEndMap?: Record<RegionId, number>
 }
 
 export type Region = {
