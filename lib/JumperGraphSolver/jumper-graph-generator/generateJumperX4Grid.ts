@@ -20,6 +20,7 @@ export const generateJumperX4Grid = ({
   orientation = "vertical",
   center,
   bounds,
+  parallelTracesUnderJumperCount = 4,
 }: {
   cols: number
   rows: number
@@ -35,6 +36,8 @@ export const generateJumperX4Grid = ({
   orientation?: "vertical" | "horizontal"
   center?: { x: number; y: number }
   bounds?: { minX: number; maxX: number; minY: number; maxY: number }
+  /** Number of trace points that can pass through the jumper body from top to bottom without using jumpers */
+  parallelTracesUnderJumperCount?: number
 }): JumperGraph => {
   const regions: JRegion[] = []
   const ports: JPort[] = []
@@ -617,9 +620,9 @@ export const generateJumperX4Grid = ({
         if (regionsBetweenPads) {
           const ujBounds = underjumper.d.bounds
           const ujWidth = ujBounds.maxX - ujBounds.minX
-          const portSpacing = ujWidth / 5 // 4 ports with equal spacing
+          const portSpacing = ujWidth / (parallelTracesUnderJumperCount + 1)
 
-          for (let i = 1; i <= 4; i++) {
+          for (let i = 1; i <= parallelTracesUnderJumperCount; i++) {
             const portX = ujBounds.minX + portSpacing * i
             const topUJPort: JPort = {
               portId: `${idPrefix}:T-UJ${i}`,
@@ -666,9 +669,9 @@ export const generateJumperX4Grid = ({
         if (regionsBetweenPads) {
           const ujBounds = underjumper.d.bounds
           const ujWidth = ujBounds.maxX - ujBounds.minX
-          const portSpacing = ujWidth / 5 // 4 ports with equal spacing
+          const portSpacing = ujWidth / (parallelTracesUnderJumperCount + 1)
 
-          for (let i = 1; i <= 4; i++) {
+          for (let i = 1; i <= parallelTracesUnderJumperCount; i++) {
             const portX = ujBounds.minX + portSpacing * i
             const bottomUJPort: JPort = {
               portId: `${idPrefix}:B-UJ${i}`,
@@ -912,9 +915,9 @@ export const generateJumperX4Grid = ({
         if (regionsBetweenPads) {
           const ujBounds = underjumper.d.bounds
           const ujWidth = ujBounds.maxX - ujBounds.minX
-          const portSpacing = ujWidth / 5 // 4 ports with equal spacing
+          const portSpacing = ujWidth / (parallelTracesUnderJumperCount + 1)
 
-          for (let i = 1; i <= 4; i++) {
+          for (let i = 1; i <= parallelTracesUnderJumperCount; i++) {
             const portX = ujBounds.minX + portSpacing * i
             const aboveUJPort: JPort = {
               portId: `cell_${row - 1}_${col}->cell_${row}_${col}:B-UJ${i}`,
