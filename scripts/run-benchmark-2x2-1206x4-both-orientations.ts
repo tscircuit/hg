@@ -3,7 +3,7 @@ import { createProblemFromBaseGraph } from "../lib/JumperGraphSolver/jumper-grap
 import { JumperGraphSolver } from "../lib/JumperGraphSolver/JumperGraphSolver"
 import { calculateGraphBounds } from "../lib/JumperGraphSolver/jumper-graph-generator/calculateGraphBounds"
 
-const SAMPLES_PER_CROSSING_COUNT = 100
+const SAMPLES_PER_CROSSING_COUNT = 2000
 const MIN_CROSSINGS = 2
 const MAX_CROSSINGS = 20
 

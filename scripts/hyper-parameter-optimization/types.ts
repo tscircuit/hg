@@ -5,6 +5,14 @@ export interface Parameters {
   crossingPenaltySq: number
   ripCost: number
   greedyMultiplier: number
+  // New tunable parameters
+  hopDistanceMultiplier: number
+  ripCountExponent: number
+  crossingExponent: number
+  sameNetCrossingPenalty: number
+  congestionRadius: number
+  congestionPenaltyMultiplier: number
+  connectionOrderWeight: number
 }
 
 export const PARAM_KEYS: (keyof Parameters)[] = [
@@ -14,6 +22,14 @@ export const PARAM_KEYS: (keyof Parameters)[] = [
   "crossingPenaltySq",
   "ripCost",
   "greedyMultiplier",
+  // New tunable parameters
+  "hopDistanceMultiplier",
+  "ripCountExponent",
+  "crossingExponent",
+  "sameNetCrossingPenalty",
+  "congestionRadius",
+  "congestionPenaltyMultiplier",
+  "connectionOrderWeight",
 ]
 
 export interface SampleConfig {
@@ -38,6 +54,13 @@ export function formatParams(params: Parameters): string {
     `crossingPenaltySq=${params.crossingPenaltySq.toFixed(3)}`,
     `ripCost=${params.ripCost.toFixed(3)}`,
     `greedyMultiplier=${params.greedyMultiplier.toFixed(3)}`,
+    `hopDistMult=${params.hopDistanceMultiplier.toFixed(3)}`,
+    `ripCountExp=${params.ripCountExponent.toFixed(3)}`,
+    `crossingExp=${params.crossingExponent.toFixed(3)}`,
+    `sameNetCross=${params.sameNetCrossingPenalty.toFixed(3)}`,
+    `congRadius=${params.congestionRadius.toFixed(3)}`,
+    `congMult=${params.congestionPenaltyMultiplier.toFixed(3)}`,
+    `connOrderWt=${params.connectionOrderWeight.toFixed(3)}`,
   ].join(", ")
 }
 
@@ -58,5 +81,12 @@ export function createZeroParams(): Parameters {
     crossingPenaltySq: 0,
     ripCost: 0,
     greedyMultiplier: 0,
+    hopDistanceMultiplier: 0,
+    ripCountExponent: 0,
+    crossingExponent: 0,
+    sameNetCrossingPenalty: 0,
+    congestionRadius: 0,
+    congestionPenaltyMultiplier: 0,
+    connectionOrderWeight: 0,
   }
 }
