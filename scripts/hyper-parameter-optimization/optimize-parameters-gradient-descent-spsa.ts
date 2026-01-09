@@ -63,6 +63,14 @@ const PARAM_SCALES: Parameters = {
   crossingPenaltySq: 1,
   ripCost: 50,
   greedyMultiplier: 1,
+  // New parameters - scales chosen based on expected magnitude
+  hopDistanceMultiplier: 1,
+  ripCountExponent: 1,
+  crossingExponent: 1,
+  sameNetCrossingPenalty: 1,
+  congestionRadius: 1,
+  congestionPenaltyMultiplier: 0.1,
+  connectionOrderWeight: 1,
 }
 
 /**
@@ -169,6 +177,13 @@ function formatGradient(gradient: Parameters): string {
     `d_crossSq=${gradient.crossingPenaltySq.toFixed(4)}`,
     `d_rip=${gradient.ripCost.toFixed(6)}`,
     `d_greedy=${gradient.greedyMultiplier.toFixed(4)}`,
+    `d_hopMult=${gradient.hopDistanceMultiplier.toFixed(4)}`,
+    `d_ripExp=${gradient.ripCountExponent.toFixed(4)}`,
+    `d_crossExp=${gradient.crossingExponent.toFixed(4)}`,
+    `d_sameNet=${gradient.sameNetCrossingPenalty.toFixed(4)}`,
+    `d_congRad=${gradient.congestionRadius.toFixed(4)}`,
+    `d_congMult=${gradient.congestionPenaltyMultiplier.toFixed(4)}`,
+    `d_connOrd=${gradient.connectionOrderWeight.toFixed(4)}`,
   ].join(", ")
 }
 
