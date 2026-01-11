@@ -40,7 +40,7 @@ export const JUMPER_GRAPH_SOLVER_DEFAULTS = {
 }
 
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
-  UNIT_OF_COST = "distance"
+  UNIT_OF_COST = "hops"
 
   portUsagePenalty = JUMPER_GRAPH_SOLVER_DEFAULTS.portUsagePenalty
   portUsagePenaltySq = JUMPER_GRAPH_SOLVER_DEFAULTS.portUsagePenaltySq
@@ -80,7 +80,8 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
 
     this.MAX_ITERATIONS =
       this.baseMaxIterations +
-      input.inputConnections.length * this.additionalMaxIterationsPerConnection +
+      input.inputConnections.length *
+        this.additionalMaxIterationsPerConnection +
       crossings * this.additionalMaxIterationsPerCrossing
 
     this.populateDistanceToEndMaps()

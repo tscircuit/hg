@@ -36,7 +36,7 @@ import { evaluateParametersOnProblems } from "./evaluator"
 // Dataset sizes
 const TRAIN_SAMPLES = 1000
 const VAL_SAMPLES = 200
-const BATCH_SIZE = 100 // Number of training samples to use per iteration
+const BATCH_SIZE = 250 // Number of training samples to use per iteration
 const EPOCHS_PER_VALIDATION = 5
 
 // SPSA hyperparameters
