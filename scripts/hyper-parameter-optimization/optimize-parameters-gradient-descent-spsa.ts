@@ -15,7 +15,10 @@
  * Simultaneous Perturbation Gradient Approximation"
  */
 
-import { JUMPER_GRAPH_SOLVER_DEFAULTS } from "../../lib/JumperGraphSolver/JumperGraphSolver"
+import {
+  JumperGraphSolver,
+  JUMPER_GRAPH_SOLVER_DEFAULTS,
+} from "../../lib/JumperGraphSolver/JumperGraphSolver"
 import {
   type Parameters,
   type SampleConfig,
@@ -25,18 +28,18 @@ import {
   createZeroParams,
 } from "./types"
 import {
-  generateSampleConfigs,
-  pregenerateProblems,
-  groupProblemsByConfig,
+  createBaseGraph,
+  getUniqueSeed,
   getUsedSeedsCount,
   type PregeneratedProblem,
 } from "./problem-generator"
+import { createProblemFromBaseGraph } from "../../lib/JumperGraphSolver/jumper-graph-generator/createProblemFromBaseGraph"
 import { evaluateParametersOnProblems } from "./evaluator"
 
 // Dataset sizes
-const TRAIN_SAMPLES = 1000
-const VAL_SAMPLES = 200
-const BATCH_SIZE = 250 // Number of training samples to use per iteration
+const TRAIN_SAMPLES = 100
+const VAL_SAMPLES = 100
+const BATCH_SIZE = 100 // Number of training samples to use per iteration
 const EPOCHS_PER_VALIDATION = 5
 
 // SPSA hyperparameters
@@ -53,6 +56,9 @@ const SPSA_gamma = 0.101 // Standard value for asymptotic convergence
 
 const MIN_CROSSINGS = 5
 const MAX_CROSSINGS = 40
+
+// Parse command line flags
+const FAILING_ONLY = process.argv.includes("--failing-only")
 
 // Parameter scaling factors to handle different parameter magnitudes
 // SPSA works best when all parameters are roughly the same scale (~O(1))
@@ -195,6 +201,120 @@ function formatGradient(gradient: Parameters): string {
   ].join(", ")
 }
 
+/**
+ * Checks if a set of pregenerated problems (for a single config) can be solved
+ * with default parameters. Returns true if ANY orientation solves.
+ */
+function solvesProblemWithDefaults(problems: PregeneratedProblem[]): boolean {
+  for (const { problem } of problems) {
+    const clonedProblem = structuredClone(problem)
+    const solver = new JumperGraphSolver({
+      inputGraph: {
+        regions: clonedProblem.regions,
+        ports: clonedProblem.ports,
+      },
+      inputConnections: clonedProblem.connections,
+      portUsagePenalty: JUMPER_GRAPH_SOLVER_DEFAULTS.portUsagePenalty,
+      crossingPenalty: JUMPER_GRAPH_SOLVER_DEFAULTS.crossingPenalty,
+      ripCost: JUMPER_GRAPH_SOLVER_DEFAULTS.ripCost,
+    })
+    ;(solver as any).greedyMultiplier =
+      JUMPER_GRAPH_SOLVER_DEFAULTS.greedyMultiplier
+    solver.solve()
+    if (solver.solved) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Generates sample configs and pregenerated problems, optionally filtering to only
+ * samples that fail with default parameters. Always returns exactly `count` samples.
+ */
+function generateSamplesWithProblems(
+  count: number,
+  minCrossings: number,
+  maxCrossings: number,
+  failingOnly: boolean,
+  progressLabel?: string,
+): {
+  configs: SampleConfig[]
+  problemsByConfig: Map<number, PregeneratedProblem[]>
+} {
+  const configs: SampleConfig[] = []
+  const problemsByConfig = new Map<number, PregeneratedProblem[]>()
+
+  const allGridSizes: [1 | 2 | 3, 1 | 2 | 3][] = [
+    [1, 1],
+    [1, 2],
+    [2, 1],
+    [2, 2],
+    [1, 3],
+    [2, 3],
+    [3, 1],
+    [3, 2],
+    [3, 3],
+  ]
+  const largeGridSizes: [1 | 2 | 3, 1 | 2 | 3][] = [
+    [1, 2],
+    [2, 1],
+    [2, 2],
+    [1, 3],
+    [2, 3],
+    [3, 1],
+    [3, 2],
+    [3, 3],
+  ]
+
+  let generated = 0
+  let crossingIndex = 0
+
+  while (configs.length < count) {
+    const numCrossings =
+      minCrossings + (crossingIndex % (maxCrossings - minCrossings + 1))
+    const gridSizes = numCrossings > 8 ? largeGridSizes : allGridSizes
+    const [rows, cols] = gridSizes[crossingIndex % gridSizes.length]
+    const seed = getUniqueSeed()
+    const config: SampleConfig = { numCrossings, seed, rows, cols }
+
+    crossingIndex++
+    generated++
+
+    if (progressLabel) {
+      const status = failingOnly
+        ? `${progressLabel}: generated ${generated}, kept ${configs.length}/${count} failing`
+        : `${progressLabel}: ${configs.length + 1}/${count}`
+      process.stdout.write(`\r${status}`)
+    }
+
+    // Generate problems for both orientations
+    const problems: PregeneratedProblem[] = []
+    for (const orientation of ["vertical", "horizontal"] as const) {
+      const problem = createProblemFromBaseGraph({
+        baseGraph: createBaseGraph(orientation, config.rows, config.cols),
+        numCrossings: config.numCrossings,
+        randomSeed: config.seed,
+      })
+      problems.push({ config, orientation, problem })
+    }
+
+    // If failingOnly mode, check if it solves with defaults
+    if (failingOnly && solvesProblemWithDefaults(problems)) {
+      continue // Skip this sample, it solves with defaults
+    }
+
+    configs.push(config)
+    problemsByConfig.set(config.seed, problems)
+  }
+
+  if (progressLabel) {
+    process.stdout.write("\r" + " ".repeat(80) + "\r")
+  }
+
+  return { configs, problemsByConfig }
+}
+
 async function main() {
   console.log("JumperGraphSolver Parameter Optimization via SPSA")
   console.log("=".repeat(70))
@@ -202,6 +322,9 @@ async function main() {
   console.log(`Validation samples: ${VAL_SAMPLES}`)
   console.log(`Batch size: ${BATCH_SIZE}`)
   console.log(`Number of iterations: ${NUM_ITERATIONS}`)
+  if (FAILING_ONLY) {
+    console.log(`Mode: --failing-only (only samples that fail with defaults)`)
+  }
   console.log()
   console.log("SPSA hyperparameters:")
   console.log(`  a = ${SPSA_a}, c = ${SPSA_c}, A = ${SPSA_A}`)
@@ -213,38 +336,31 @@ async function main() {
   console.log("=".repeat(70))
   console.log()
 
-  // === GENERATE SAMPLE CONFIGS ===
-  console.log("Generating sample configurations...")
-  const trainConfigs = generateSampleConfigs(
-    TRAIN_SAMPLES,
-    MIN_CROSSINGS,
-    MAX_CROSSINGS,
-  )
-  const valConfigs = generateSampleConfigs(
-    VAL_SAMPLES,
-    MIN_CROSSINGS,
-    MAX_CROSSINGS,
-  )
+  // === GENERATE SAMPLES AND PROBLEMS ===
   console.log(
-    `  Train: ${trainConfigs.length} configs (seeds ${trainConfigs[0].seed}-${trainConfigs[trainConfigs.length - 1].seed})`,
+    FAILING_ONLY
+      ? "Generating samples (only keeping those that fail with defaults)..."
+      : "Generating samples and problems...",
   )
-  console.log(
-    `  Val: ${valConfigs.length} configs (seeds ${valConfigs[0].seed}-${valConfigs[valConfigs.length - 1].seed})`,
-  )
+  const { configs: trainConfigs, problemsByConfig: trainProblemsByConfig } =
+    generateSamplesWithProblems(
+      TRAIN_SAMPLES,
+      MIN_CROSSINGS,
+      MAX_CROSSINGS,
+      FAILING_ONLY,
+      "  Train",
+    )
+  const { configs: valConfigs, problemsByConfig: valProblemsByConfig } =
+    generateSamplesWithProblems(
+      VAL_SAMPLES,
+      MIN_CROSSINGS,
+      MAX_CROSSINGS,
+      FAILING_ONLY,
+      "  Val",
+    )
+  console.log(`  Train: ${trainConfigs.length} samples`)
+  console.log(`  Val: ${valConfigs.length} samples`)
   console.log()
-
-  // === PREGENERATE ALL PROBLEMS ===
-  console.log("Pregenerating all problems (this may take a while)...")
-  const trainProblems = pregenerateProblems(trainConfigs, "  Train")
-  const valProblems = pregenerateProblems(valConfigs, "  Val")
-  console.log(
-    `  Generated ${trainProblems.length} train problems, ${valProblems.length} val problems`,
-  )
-  console.log()
-
-  // Group problems by config for efficient lookup
-  const trainProblemsByConfig = groupProblemsByConfig(trainProblems)
-  const valProblemsByConfig = groupProblemsByConfig(valProblems)
 
   // Initial parameters (in real/θ space)
   let params: Parameters = { ...JUMPER_GRAPH_SOLVER_DEFAULTS }
