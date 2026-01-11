@@ -14,15 +14,28 @@ import { distance } from "@tscircuit/math-utils"
 import { computeDifferentNetCrossings } from "./computeDifferentNetCrossings"
 import { computeCrossingAssignments } from "./computeCrossingAssignments"
 
+/**
+Last training run with 1x1 to 3x3
+
+Final parameters (last iteration):                
+portUsagePenalty=0.074, crossingPenalty=3.362, ripCost=40.127, greedyMultiplier=0.504
+  Val: 53.00% solved
+
+Best parameters (by validation score):
+portUsagePenalty=0.077, crossingPenalty=3.659, ripCost=41.817, greedyMultiplier=0.554
+  Val: 56.50% solved
+ */
+
+// portUsagePenalty=0.077, crossingPenalty=3.659, ripCost=41.817, greedyMultiplier=0.554
 export const JUMPER_GRAPH_SOLVER_DEFAULTS = {
-  portUsagePenalty: 0.06393718451067248,
+  portUsagePenalty: 0.077,
   // portUsagePenaltySq: 0.06194817180037216,
   portUsagePenaltySq: 0,
-  crossingPenalty: 6.0761550028071145,
+  crossingPenalty: 3.659,
   crossingPenaltySq: 0,
   // crossingPenaltySq: 0.1315528159128946,
-  ripCost: 40.00702225250195,
-  greedyMultiplier: 0.4316469416682083,
+  ripCost: 41.817,
+  greedyMultiplier: 0.554,
 }
 
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
@@ -34,7 +47,8 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
   crossingPenaltySq = JUMPER_GRAPH_SOLVER_DEFAULTS.crossingPenaltySq
   override ripCost = JUMPER_GRAPH_SOLVER_DEFAULTS.ripCost
   baseMaxIterations = 4000
-  additionalMaxIterationsPerConnection = 4000
+  additionalMaxIterationsPerConnection = 2000
+  additionalMaxIterationsPerCrossing = 2000
 
   constructor(input: {
     inputGraph: HyperGraph | SerializedHyperGraph
@@ -57,6 +71,8 @@ export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
     this.additionalMaxIterationsPerConnection =
       input.additionalMaxIterationsPerConnection ??
       this.additionalMaxIterationsPerConnection
+
+    // const crossings = ...
 
     this.MAX_ITERATIONS =
       this.baseMaxIterations +

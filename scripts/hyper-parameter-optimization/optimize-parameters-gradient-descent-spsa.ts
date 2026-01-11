@@ -36,7 +36,7 @@ import { evaluateParametersOnProblems } from "./evaluator"
 // Dataset sizes
 const TRAIN_SAMPLES = 1000
 const VAL_SAMPLES = 200
-const BATCH_SIZE = 200 // Number of training samples to use per iteration
+const BATCH_SIZE = 100 // Number of training samples to use per iteration
 const EPOCHS_PER_VALIDATION = 5
 
 // SPSA hyperparameters
@@ -45,8 +45,8 @@ const NUM_ITERATIONS = 200
 // Standard SPSA gain sequence parameters
 // a_k = a / (k + A)^alpha - step size
 // c_k = c / k^gamma - perturbation size
-const SPSA_a = 0.1 // Initial step size multiplier
-const SPSA_c = 0.25 // Initial perturbation size
+const SPSA_a = 2 // Initial step size multiplier
+const SPSA_c = 0.5 // Initial perturbation size
 const SPSA_A = 20 // Stability constant (typically ~10% of max iterations)
 const SPSA_alpha = 0.602 // Standard value for asymptotic convergence
 const SPSA_gamma = 0.101 // Standard value for asymptotic convergence
@@ -55,14 +55,43 @@ const MIN_CROSSINGS = 5
 const MAX_CROSSINGS = 40
 
 // Parameter scaling factors to handle different parameter magnitudes
-// SPSA works best when all parameters are roughly the same scale
+// SPSA works best when all parameters are roughly the same scale (~O(1))
+// Using default values as scales means x starts near 1 everywhere
 const PARAM_SCALES: Parameters = {
-  portUsagePenalty: 1,
-  // portUsagePenaltySq: 1,
-  crossingPenalty: 10,
-  // crossingPenaltySq: 1,
-  ripCost: 50,
-  greedyMultiplier: 1,
+  portUsagePenalty: Math.max(
+    0.1,
+    JUMPER_GRAPH_SOLVER_DEFAULTS.portUsagePenalty,
+  ),
+  crossingPenalty: Math.max(0.1, JUMPER_GRAPH_SOLVER_DEFAULTS.crossingPenalty),
+  ripCost: Math.max(0.1, JUMPER_GRAPH_SOLVER_DEFAULTS.ripCost),
+  greedyMultiplier: Math.max(
+    0.1,
+    JUMPER_GRAPH_SOLVER_DEFAULTS.greedyMultiplier,
+  ),
+}
+
+/**
+ * Convert real parameters θ to scaled internal space x where x_i = θ_i / scale_i
+ * This makes all coordinates ~O(1) for stable SPSA optimization
+ */
+function toScaled(params: Parameters): Parameters {
+  const x = createZeroParams()
+  for (const key of PARAM_KEYS) {
+    x[key] = params[key] / PARAM_SCALES[key]
+  }
+  return x
+}
+
+/**
+ * Convert scaled internal space x back to real parameters θ where θ_i = scale_i * x_i
+ * Clamps to positive values to maintain valid parameters
+ */
+function fromScaled(x: Parameters): Parameters {
+  const params = createZeroParams()
+  for (const key of PARAM_KEYS) {
+    params[key] = Math.max(0.001, x[key] * PARAM_SCALES[key])
+  }
+  return params
 }
 
 /**
@@ -105,27 +134,27 @@ function getGains(k: number): { a_k: number; c_k: number } {
 }
 
 /**
- * Apply perturbation to parameters: theta ± c_k * scale * delta
+ * Perturb in x-space (scaled internal space): x ± c_k * delta
+ * No parameter scales here - scaling is handled by the space transformation
  */
-function perturbParameters(
-  params: Parameters,
+function perturbScaled(
+  x: Parameters,
   delta: Parameters,
   c_k: number,
   sign: 1 | -1,
 ): Parameters {
-  const perturbed = { ...params }
+  const perturbed = { ...x }
   for (const key of PARAM_KEYS) {
-    const perturbation = sign * c_k * PARAM_SCALES[key] * delta[key]
-    perturbed[key] = Math.max(0.001, params[key] + perturbation) // Keep positive
+    perturbed[key] = x[key] + sign * c_k * delta[key]
   }
   return perturbed
 }
 
 /**
- * Estimate gradient using SPSA: g = (y+ - y-) / (2 * c_k * delta)
- * where delta^(-1) is element-wise inverse
+ * Estimate gradient in x-space using SPSA: g_x,i = (y+ - y-) / (2 * c_k * delta_i)
+ * No parameter scales here - gradient is in the scaled internal space
  */
-function estimateGradient(
+function estimateGradientScaled(
   yPlus: number,
   yMinus: number,
   delta: Parameters,
@@ -135,30 +164,26 @@ function estimateGradient(
   const diff = yPlus - yMinus
 
   for (const key of PARAM_KEYS) {
-    // g_i = (y+ - y-) / (2 * c_k * scale_i * delta_i)
-    gradient[key] = diff / (2 * c_k * PARAM_SCALES[key] * delta[key])
+    gradient[key] = diff / (2 * c_k * delta[key])
   }
 
   return gradient
 }
 
 /**
- * Update parameters using gradient estimate: theta = theta + a_k * gradient
+ * Update in x-space: x = x + a_k * gradient
+ * No parameter scales here - update is in the scaled internal space
  */
-function updateParameters(
-  params: Parameters,
+function updateScaled(
+  x: Parameters,
   gradient: Parameters,
   a_k: number,
 ): Parameters {
-  const newParams = { ...params }
+  const newX = { ...x }
   for (const key of PARAM_KEYS) {
-    // Scale the update by PARAM_SCALES for proper step sizes
-    newParams[key] = Math.max(
-      0.001,
-      params[key] + a_k * PARAM_SCALES[key] * gradient[key],
-    )
+    newX[key] = x[key] + a_k * gradient[key]
   }
-  return newParams
+  return newX
 }
 
 function formatGradient(gradient: Parameters): string {
@@ -221,8 +246,10 @@ async function main() {
   const trainProblemsByConfig = groupProblemsByConfig(trainProblems)
   const valProblemsByConfig = groupProblemsByConfig(valProblems)
 
-  // Initial parameters
+  // Initial parameters (in real/θ space)
   let params: Parameters = { ...JUMPER_GRAPH_SOLVER_DEFAULTS }
+  // Convert to scaled/internal space (x) for SPSA optimization
+  let x: Parameters = toScaled(params)
 
   console.log("Initial parameters:")
   console.log(formatParams(params))
@@ -264,20 +291,24 @@ async function main() {
     // Sample a random batch for this iteration
     const batchConfigs = sampleBatch(trainConfigs, BATCH_SIZE)
 
-    // Generate random perturbation vector
+    // Generate random perturbation vector (Bernoulli ±1)
     const delta = generatePerturbation()
 
-    // Evaluate at theta + c_k * delta
-    const paramsPlus = perturbParameters(params, delta, c_k, 1)
+    // Perturb in x-space (scaled internal space)
+    const xPlus = perturbScaled(x, delta, c_k, 1)
+    const xMinus = perturbScaled(x, delta, c_k, -1)
+
+    // Convert back to real parameters for evaluation
+    const paramsPlus = fromScaled(xPlus)
+    const paramsMinus = fromScaled(xMinus)
+
+    // Evaluate at perturbed points
     const resultPlus = evaluateParametersOnProblems(
       paramsPlus,
       trainProblemsByConfig,
       batchConfigs,
       `Iter ${k} +`,
     )
-
-    // Evaluate at theta - c_k * delta
-    const paramsMinus = perturbParameters(params, delta, c_k, -1)
     const resultMinus = evaluateParametersOnProblems(
       paramsMinus,
       trainProblemsByConfig,
@@ -285,16 +316,18 @@ async function main() {
       `Iter ${k} -`,
     )
 
-    // Estimate gradient using SPSA formula
-    const gradient = estimateGradient(
+    // Estimate gradient in x-space using SPSA formula
+    const gradient = estimateGradientScaled(
       resultPlus.successRate,
       resultMinus.successRate,
       delta,
       c_k,
     )
 
-    // Update parameters
-    params = updateParameters(params, gradient, a_k)
+    // Update in x-space
+    x = updateScaled(x, gradient, a_k)
+    // Convert back to real parameters for printing/validation
+    params = fromScaled(x)
 
     // Evaluate on validation set periodically to save time
     let valResult = { successRate: 0 }
