@@ -58,7 +58,9 @@ export default () => {
     return (
       <div style={{ padding: 20, fontFamily: "monospace" }}>
         No dataset loaded. Run the generator first:
-        <pre>bun scripts/dataset-generation/generate-dataset01.ts --samples 10</pre>
+        <pre>
+          bun scripts/dataset-generation/generate-dataset01.ts --samples 10
+        </pre>
       </div>
     )
   }

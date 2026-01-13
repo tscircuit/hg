@@ -97,7 +97,11 @@ function createBaseGraph(
 }
 
 function generateProblem(config: ProblemConfig): JumperGraphWithConnections {
-  const baseGraph = createBaseGraph(config.orientation, config.rows, config.cols)
+  const baseGraph = createBaseGraph(
+    config.orientation,
+    config.rows,
+    config.cols,
+  )
   return createProblemFromBaseGraph({
     baseGraph,
     numCrossings: config.numCrossings,
@@ -161,7 +165,9 @@ function generateRandomConfig(random: () => number): ProblemConfig {
 async function main() {
   console.log(`Generating dataset with ${targetSamples} non-trivial problems`)
   console.log(`Crossings range: ${MIN_CROSSINGS}-${MAX_CROSSINGS}`)
-  console.log(`Grid sizes: ${MIN_GRID_SIZE}x${MIN_GRID_SIZE} to ${MAX_GRID_SIZE}x${MAX_GRID_SIZE}`)
+  console.log(
+    `Grid sizes: ${MIN_GRID_SIZE}x${MIN_GRID_SIZE} to ${MAX_GRID_SIZE}x${MAX_GRID_SIZE}`,
+  )
   console.log(`Pass condition: solve with ${PASS_MULTIPLIER}x iterations`)
   console.log(`Fail condition: not solve with ${FAIL_MULTIPLIER}x iterations`)
   console.log("")
@@ -209,7 +215,9 @@ async function main() {
     // Test with low iterations (should FAIL)
     const passesLowIter = testProblemWithMultiplier(problem, FAIL_MULTIPLIER)
     if (passesLowIter) {
-      process.stdout.write(` SKIPPED (passes at ${FAIL_MULTIPLIER}x - too easy)\n`)
+      process.stdout.write(
+        ` SKIPPED (passes at ${FAIL_MULTIPLIER}x - too easy)\n`,
+      )
       continue
     }
     failedLowIter++
@@ -219,7 +227,9 @@ async function main() {
       config,
       problem: {
         graph: convertHyperGraphToSerializedHyperGraph(problem),
-        connections: convertConnectionsToSerializedConnections(problem.connections),
+        connections: convertConnectionsToSerializedConnections(
+          problem.connections,
+        ),
       },
     }
     dataset.push(entry)
@@ -238,7 +248,9 @@ async function main() {
       console.log(`  Total attempts: ${attempted}`)
       console.log(`  Problems generated successfully: ${generated}`)
       console.log(`  Failed problem generation: ${problemGenerationFailed}`)
-      console.log(`  Acceptance rate: ${((dataset.length / attempted) * 100).toFixed(1)}%`)
+      console.log(
+        `  Acceptance rate: ${((dataset.length / attempted) * 100).toFixed(1)}%`,
+      )
       console.log(`  Time elapsed: ${elapsedSec}s`)
       console.log("")
     }
@@ -254,7 +266,9 @@ async function main() {
   console.log(`Failed problem generation: ${problemGenerationFailed}`)
   console.log(`Passed high iteration test: ${passedHighIter}`)
   console.log(`Failed low iteration test (as expected): ${failedLowIter}`)
-  console.log(`Overall acceptance rate: ${((dataset.length / attempted) * 100).toFixed(1)}%`)
+  console.log(
+    `Overall acceptance rate: ${((dataset.length / attempted) * 100).toFixed(1)}%`,
+  )
   console.log(`Total time: ${totalTime}s`)
 
   // Ensure output directory exists
