@@ -1,24 +1,25 @@
 import type { JPort, JRegion } from "../jumper-types"
 import { computeBoundsCenter } from "../geometry/getBoundsCenter"
 
-// 1206x4 resistor chip array dimensions
+// EXB-38VR000V (Panasonic) 4x 0Ω isolated jumpers dimensions
 // This is a 4-element array with 8 pads total (4 per side)
-// Layout is four resistors stacked vertically, each connecting left↔right:
-//   [P1] ----TJ1---- [P8]   (row 1, Y = 1.905mm)
-//   [P2] ----TJ2---- [P7]   (row 2, Y = 0.635mm)
-//   [P3] ----TJ3---- [P6]   (row 3, Y = -0.635mm)
-//   [P4] ----TJ4---- [P5]   (row 4, Y = -1.905mm)
-// Left pads at X = -1.35mm, Right pads at X = 1.35mm
-// CCW pin numbering: pins 1-4 on left (top to bottom), pins 5-8 on right (bottom to top)
+// Layout is four jumpers stacked vertically, each connecting left↔right:
+//   [P1] ----TJ1---- [P8]   (row 1, Y = -1.2mm)
+//   [P2] ----TJ2---- [P7]   (row 2, Y = -0.4mm)
+//   [P3] ----TJ3---- [P6]   (row 3, Y = 0.4mm)
+//   [P4] ----TJ4---- [P5]   (row 4, Y = 1.2mm)
+// Left pads at X = -0.9mm, Right pads at X = 0.9mm
+// CCW pin numbering: pins 1-4 on left (bottom to top), pins 5-8 on right (top to bottom)
 export const dims1206x4 = {
   padWidth: 0.8, // X direction (horizontal)
-  padHeight: 0.5, // Y direction (vertical)
-  leftPadCenterX: -1.35, // X position of left pads (P1, P2, P3, P4)
-  rightPadCenterX: 1.35, // X position of right pads (P5, P6, P7, P8)
-  row1CenterY: 1.905, // Y position of row 1 (P1, P8)
-  row2CenterY: 0.635, // Y position of row 2 (P2, P7)
-  row3CenterY: -0.635, // Y position of row 3 (P3, P6)
-  row4CenterY: -1.905, // Y position of row 4 (P4, P5)
+  outerPadHeight: 0.5, // Y direction (vertical) for rows 1 and 4
+  innerPadHeight: 0.4, // Y direction (vertical) for rows 2 and 3
+  leftPadCenterX: -0.9, // X position of left pads (P1, P2, P3, P4)
+  rightPadCenterX: 0.9, // X position of right pads (P5, P6, P7, P8)
+  row1CenterY: -1.2, // Y position of row 1 (P1, P8)
+  row2CenterY: -0.4, // Y position of row 2 (P2, P7)
+  row3CenterY: 0.4, // Y position of row 3 (P3, P6)
+  row4CenterY: 1.2, // Y position of row 4 (P4, P5)
 }
 
 export const generateSingleJumperX4Regions = ({
@@ -35,7 +36,8 @@ export const generateSingleJumperX4Regions = ({
 
   const {
     padWidth,
-    padHeight,
+    outerPadHeight,
+    innerPadHeight,
     leftPadCenterX,
     rightPadCenterX,
     row1CenterY,
@@ -45,10 +47,11 @@ export const generateSingleJumperX4Regions = ({
   } = dims1206x4
 
   const padHalfWidth = padWidth / 2
-  const padHalfHeight = padHeight / 2
+  const outerPadHalfHeight = outerPadHeight / 2
+  const innerPadHalfHeight = innerPadHeight / 2
 
   // Absolute pad center positions
-  // Left side pads (pins 1-4, top to bottom)
+  // Left side pads (pins 1-4, bottom to top)
   const p1CenterX = center.x + leftPadCenterX
   const p1CenterY = center.y + row1CenterY
 
@@ -61,9 +64,9 @@ export const generateSingleJumperX4Regions = ({
   const p4CenterX = center.x + leftPadCenterX
   const p4CenterY = center.y + row4CenterY
 
-  // Right side pads (pins 5-8, bottom to top - CCW numbering)
+  // Right side pads (pins 5-8, top to bottom - CCW numbering)
   const p5CenterX = center.x + rightPadCenterX
-  const p5CenterY = center.y + row4CenterY // bottom row
+  const p5CenterY = center.y + row4CenterY // top row
 
   const p6CenterX = center.x + rightPadCenterX
   const p6CenterY = center.y + row3CenterY
@@ -72,32 +75,37 @@ export const generateSingleJumperX4Regions = ({
   const p7CenterY = center.y + row2CenterY
 
   const p8CenterX = center.x + rightPadCenterX
-  const p8CenterY = center.y + row1CenterY // top row
+  const p8CenterY = center.y + row1CenterY // bottom row
 
   // Helper to create bounds for a pad at given center
-  const createPadBounds = (padCenterX: number, padCenterY: number) => ({
+  const createPadBounds = (
+    padCenterX: number,
+    padCenterY: number,
+    halfHeight: number,
+  ) => ({
     minX: padCenterX - padHalfWidth,
     maxX: padCenterX + padHalfWidth,
-    minY: padCenterY - padHalfHeight,
-    maxY: padCenterY + padHalfHeight,
+    minY: padCenterY - halfHeight,
+    maxY: padCenterY + halfHeight,
   })
 
-  const pad1Bounds = createPadBounds(p1CenterX, p1CenterY)
-  const pad2Bounds = createPadBounds(p2CenterX, p2CenterY)
-  const pad3Bounds = createPadBounds(p3CenterX, p3CenterY)
-  const pad4Bounds = createPadBounds(p4CenterX, p4CenterY)
-  const pad5Bounds = createPadBounds(p5CenterX, p5CenterY)
-  const pad6Bounds = createPadBounds(p6CenterX, p6CenterY)
-  const pad7Bounds = createPadBounds(p7CenterX, p7CenterY)
-  const pad8Bounds = createPadBounds(p8CenterX, p8CenterY)
+  // Outer rows (1, 4) use outerPadHalfHeight, inner rows (2, 3) use innerPadHalfHeight
+  const pad1Bounds = createPadBounds(p1CenterX, p1CenterY, outerPadHalfHeight)
+  const pad2Bounds = createPadBounds(p2CenterX, p2CenterY, innerPadHalfHeight)
+  const pad3Bounds = createPadBounds(p3CenterX, p3CenterY, innerPadHalfHeight)
+  const pad4Bounds = createPadBounds(p4CenterX, p4CenterY, outerPadHalfHeight)
+  const pad5Bounds = createPadBounds(p5CenterX, p5CenterY, outerPadHalfHeight)
+  const pad6Bounds = createPadBounds(p6CenterX, p6CenterY, innerPadHalfHeight)
+  const pad7Bounds = createPadBounds(p7CenterX, p7CenterY, innerPadHalfHeight)
+  const pad8Bounds = createPadBounds(p8CenterX, p8CenterY, outerPadHalfHeight)
 
   // Underjumper region - single vertical region in the center between left and right pads
   // NO ports connect this to pads
   const underjumperBounds = {
     minX: pad1Bounds.maxX,
     maxX: pad8Bounds.minX,
-    minY: pad4Bounds.minY,
-    maxY: pad1Bounds.maxY,
+    minY: pad1Bounds.minY, // row 1 is now at bottom (Y=-1.2)
+    maxY: pad4Bounds.maxY, // row 4 is now at top (Y=1.2)
   }
 
   // Throughjumper regions (conductive body of each resistor)
@@ -136,8 +144,8 @@ export const generateSingleJumperX4Regions = ({
   // The full extent of all main regions
   const mainMinX = pad1Bounds.minX
   const mainMaxX = pad8Bounds.maxX
-  const mainMinY = pad4Bounds.minY // bottom row
-  const mainMaxY = pad1Bounds.maxY // top row
+  const mainMinY = pad1Bounds.minY // row 1 is now at bottom (Y=-1.2)
+  const mainMaxY = pad4Bounds.maxY // row 4 is now at top (Y=1.2)
 
   // Helper to create a region
   const createRegion = (
@@ -247,13 +255,14 @@ export const generateSingleJumperX4Regions = ({
 
   if (regionsBetweenPads) {
     // Left side between-pad regions
+    // With new Y ordering: pad1 at bottom (Y=-1.2), pad4 at top (Y=1.2)
     leftBP12 = createRegion(
       "L-BP12",
       {
         minX: pad1Bounds.minX,
         maxX: pad1Bounds.maxX,
-        minY: pad2Bounds.maxY,
-        maxY: pad1Bounds.minY,
+        minY: pad1Bounds.maxY, // top of pad1
+        maxY: pad2Bounds.minY, // bottom of pad2
       },
       false,
     )
@@ -262,8 +271,8 @@ export const generateSingleJumperX4Regions = ({
       {
         minX: pad2Bounds.minX,
         maxX: pad2Bounds.maxX,
-        minY: pad3Bounds.maxY,
-        maxY: pad2Bounds.minY,
+        minY: pad2Bounds.maxY, // top of pad2
+        maxY: pad3Bounds.minY, // bottom of pad3
       },
       false,
     )
@@ -272,20 +281,21 @@ export const generateSingleJumperX4Regions = ({
       {
         minX: pad3Bounds.minX,
         maxX: pad3Bounds.maxX,
-        minY: pad4Bounds.maxY,
-        maxY: pad3Bounds.minY,
+        minY: pad3Bounds.maxY, // top of pad3
+        maxY: pad4Bounds.minY, // bottom of pad4
       },
       false,
     )
 
     // Right side between-pad regions
+    // With new Y ordering: pad8 at bottom (Y=-1.2), pad5 at top (Y=1.2)
     rightBP87 = createRegion(
       "R-BP87",
       {
         minX: pad8Bounds.minX,
         maxX: pad8Bounds.maxX,
-        minY: pad7Bounds.maxY,
-        maxY: pad8Bounds.minY,
+        minY: pad8Bounds.maxY, // top of pad8
+        maxY: pad7Bounds.minY, // bottom of pad7
       },
       false,
     )
@@ -294,8 +304,8 @@ export const generateSingleJumperX4Regions = ({
       {
         minX: pad7Bounds.minX,
         maxX: pad7Bounds.maxX,
-        minY: pad6Bounds.maxY,
-        maxY: pad7Bounds.minY,
+        minY: pad7Bounds.maxY, // top of pad7
+        maxY: pad6Bounds.minY, // bottom of pad6
       },
       false,
     )
@@ -304,8 +314,8 @@ export const generateSingleJumperX4Regions = ({
       {
         minX: pad6Bounds.minX,
         maxX: pad6Bounds.maxX,
-        minY: pad5Bounds.maxY,
-        maxY: pad6Bounds.minY,
+        minY: pad6Bounds.maxY, // top of pad6
+        maxY: pad5Bounds.minY, // bottom of pad5
       },
       false,
     )
@@ -389,20 +399,22 @@ export const generateSingleJumperX4Regions = ({
   ports.push(createPort("B-R", bottom, right))
 
   // Left side pads (P1-P4) - connections to surrounding regions
-  ports.push(createPort("T-P1", top, pad1))
+  // With new Y ordering: pad1 at bottom (Y=-1.2), pad4 at top (Y=1.2)
+  ports.push(createPort("B-P1", bottom, pad1))
   ports.push(createPort("L-P1", left, pad1))
   ports.push(createPort("L-P2", left, pad2))
   ports.push(createPort("L-P3", left, pad3))
   ports.push(createPort("L-P4", left, pad4))
-  ports.push(createPort("B-P4", bottom, pad4))
+  ports.push(createPort("T-P4", top, pad4))
 
   // Right side pads (P5-P8) - connections to surrounding regions
-  ports.push(createPort("B-P5", bottom, pad5))
+  // With new Y ordering: pad8 at bottom (Y=-1.2), pad5 at top (Y=1.2)
+  ports.push(createPort("T-P5", top, pad5))
   ports.push(createPort("R-P5", right, pad5))
   ports.push(createPort("R-P6", right, pad6))
   ports.push(createPort("R-P7", right, pad7))
   ports.push(createPort("R-P8", right, pad8))
-  ports.push(createPort("T-P8", top, pad8))
+  ports.push(createPort("B-P8", bottom, pad8))
 
   // Underjumper connections to top/bottom only - NO ports to pads!
   if (regionsBetweenPads) {
