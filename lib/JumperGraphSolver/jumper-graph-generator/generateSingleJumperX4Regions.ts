@@ -4,21 +4,22 @@ import { computeBoundsCenter } from "../geometry/getBoundsCenter"
 // 1206x4 resistor chip array dimensions
 // This is a 4-element array with 8 pads total (4 per side)
 // Layout is four resistors stacked vertically, each connecting left↔right:
-//   [P1] ----TJ1---- [P8]   (row 1, Y = 1.905mm)
-//   [P2] ----TJ2---- [P7]   (row 2, Y = 0.635mm)
-//   [P3] ----TJ3---- [P6]   (row 3, Y = -0.635mm)
-//   [P4] ----TJ4---- [P5]   (row 4, Y = -1.905mm)
-// Left pads at X = -1.35mm, Right pads at X = 1.35mm
+//   [P1] ----TJ1---- [P8]   (row 1, Y = 2.01mm)
+//   [P2] ----TJ2---- [P7]   (row 2, Y = 0.67mm)
+//   [P3] ----TJ3---- [P6]   (row 3, Y = -0.67mm)
+//   [P4] ----TJ4---- [P5]   (row 4, Y = -2.01mm)
+// Left pads at X = -1.5mm, Right pads at X = 1.5mm
 // CCW pin numbering: pins 1-4 on left (top to bottom), pins 5-8 on right (bottom to top)
+// Pad size: 0.9x0.9, row pitch: 1.34, column pitch: 3
 export const dims1206x4 = {
-  padWidth: 0.8, // X direction (horizontal)
-  padHeight: 0.5, // Y direction (vertical)
-  leftPadCenterX: -1.35, // X position of left pads (P1, P2, P3, P4)
-  rightPadCenterX: 1.35, // X position of right pads (P5, P6, P7, P8)
-  row1CenterY: 1.905, // Y position of row 1 (P1, P8)
-  row2CenterY: 0.635, // Y position of row 2 (P2, P7)
-  row3CenterY: -0.635, // Y position of row 3 (P3, P6)
-  row4CenterY: -1.905, // Y position of row 4 (P4, P5)
+  padWidth: 0.9, // X direction (horizontal)
+  padHeight: 0.9, // Y direction (vertical)
+  leftPadCenterX: -1.5, // X position of left pads (P1, P2, P3, P4)
+  rightPadCenterX: 1.5, // X position of right pads (P5, P6, P7, P8)
+  row1CenterY: 2.01, // Y position of row 1 (P1, P8)
+  row2CenterY: 0.67, // Y position of row 2 (P2, P7)
+  row3CenterY: -0.67, // Y position of row 3 (P3, P6)
+  row4CenterY: -2.01, // Y position of row 4 (P4, P5)
 }
 
 export const generateSingleJumperX4Regions = ({
