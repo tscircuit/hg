@@ -1,6 +1,9 @@
-import type { JPort, JRegion } from "../jumper-types"
+import type { JPort, JRegion, JumperGraph } from "../jumper-types"
 import { computeBoundsCenter } from "../geometry/getBoundsCenter"
 import { dims0603 } from "./generateSingleJumperRegions"
+import { calculateGraphBounds } from "./calculateGraphBounds"
+import { applyTransformToGraph } from "../geometry/applyTransformToGraph"
+import { compose, translate, rotate } from "transformation-matrix"
 
 export const generateJumperGrid = ({
   cols,
@@ -13,6 +16,7 @@ export const generateJumperGrid = ({
   outerPaddingY = 0.5,
   outerChannelXPoints,
   outerChannelYPoints,
+  orientation = "vertical",
 }: {
   cols: number
   rows: number
@@ -24,7 +28,8 @@ export const generateJumperGrid = ({
   outerPaddingY?: number
   outerChannelXPoints?: number
   outerChannelYPoints?: number
-}) => {
+  orientation?: "vertical" | "horizontal"
+}): JumperGraph => {
   // Calculate outer channel points: use provided value or derive from outer padding
   const effectiveOuterChannelXPoints =
     outerChannelXPoints ?? Math.max(1, Math.floor(outerPaddingX / 0.4))
@@ -495,8 +500,24 @@ export const generateJumperGrid = ({
     }
   }
 
-  return {
+  let graph: JumperGraph = {
     regions,
     ports,
   }
+
+  // Apply rotation transformation for horizontal orientation
+  if (orientation === "horizontal") {
+    const currentBounds = calculateGraphBounds(graph.regions)
+    const currentCenter = computeBoundsCenter(currentBounds)
+
+    // Build transformation matrix: translate to origin, rotate -90°, translate back
+    const matrix = compose(
+      translate(currentCenter.x, currentCenter.y),
+      rotate(-Math.PI / 2),
+      translate(-currentCenter.x, -currentCenter.y),
+    )
+    graph = applyTransformToGraph(graph, matrix)
+  }
+
+  return graph
 }

@@ -20,7 +20,7 @@ export const generateJumperX4Grid = ({
   orientation = "vertical",
   center,
   bounds,
-  parallelTracesUnderJumperCount = 4,
+  parallelTracesUnderJumperCount = 2,
 }: {
   cols: number
   rows: number
