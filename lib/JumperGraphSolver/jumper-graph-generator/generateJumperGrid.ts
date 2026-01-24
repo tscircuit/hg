@@ -358,7 +358,7 @@ export const generateJumperGrid = ({
             `${idPrefix}:T-R`,
             top,
             right,
-            effectiveOuterChannelXPoints,
+            isLastCol ? effectiveOuterChannelXPoints : innerColChannelPointCount,
           ),
         )
         ports.push(createPort(`${idPrefix}:T-UJ`, top, underjumper))
@@ -381,7 +381,7 @@ export const generateJumperGrid = ({
             `${idPrefix}:B-R`,
             bottom,
             right,
-            effectiveOuterChannelXPoints,
+            isLastCol ? effectiveOuterChannelXPoints : innerColChannelPointCount,
           ),
         )
         ports.push(createPort(`${idPrefix}:B-UJ`, bottom, underjumper))
@@ -475,7 +475,7 @@ export const generateJumperGrid = ({
             `cell_${row - 1}_${col}->cell_${row}_${col}:B-R`,
             aboveCell.bottom!,
             right,
-            effectiveOuterChannelXPoints,
+            isLastCol ? effectiveOuterChannelXPoints : innerColChannelPointCount,
           ),
         )
       }
