@@ -89,7 +89,11 @@ export default () => {
 
     const { config } = entry
     const xyConnections = extractXYConnections(entry)
-    const baseGraph = createBaseGraph(config.rows, config.cols, config.orientation)
+    const baseGraph = createBaseGraph(
+      config.rows,
+      config.cols,
+      config.orientation,
+    )
     const graphWithConnections = createGraphWithConnectionsFromBaseGraph(
       baseGraph,
       xyConnections,

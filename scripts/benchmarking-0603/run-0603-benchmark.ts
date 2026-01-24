@@ -35,27 +35,27 @@ type DatasetSample = {
 
 // Grid configurations to try, ordered by jumper count (rows * cols)
 const GRID_CONFIGS = [
-  { rows: 1, cols: 1 },  // 1 jumper
-  { rows: 1, cols: 2 },  // 2 jumpers
-  { rows: 2, cols: 1 },  // 2 jumpers
-  { rows: 1, cols: 3 },  // 3 jumpers
-  { rows: 3, cols: 1 },  // 3 jumpers
-  { rows: 2, cols: 2 },  // 4 jumpers
-  { rows: 1, cols: 4 },  // 4 jumpers
-  { rows: 4, cols: 1 },  // 4 jumpers
-  { rows: 2, cols: 3 },  // 6 jumpers
-  { rows: 3, cols: 2 },  // 6 jumpers
-  { rows: 3, cols: 3 },  // 9 jumpers
-  { rows: 2, cols: 4 },  // 8 jumpers
-  { rows: 4, cols: 2 },  // 8 jumpers
-  { rows: 3, cols: 4 },  // 12 jumpers
-  { rows: 4, cols: 3 },  // 12 jumpers
-  { rows: 4, cols: 4 },  // 16 jumpers
-  { rows: 5, cols: 5 },  // 25 jumpers
-  { rows: 6, cols: 6 },  // 36 jumpers
-  { rows: 7, cols: 7 },  // 49 jumpers
-  { rows: 8, cols: 8 },  // 64 jumpers
-].sort((a, b) => (a.rows * a.cols) - (b.rows * b.cols))
+  { rows: 1, cols: 1 }, // 1 jumper
+  { rows: 1, cols: 2 }, // 2 jumpers
+  { rows: 2, cols: 1 }, // 2 jumpers
+  { rows: 1, cols: 3 }, // 3 jumpers
+  { rows: 3, cols: 1 }, // 3 jumpers
+  { rows: 2, cols: 2 }, // 4 jumpers
+  { rows: 1, cols: 4 }, // 4 jumpers
+  { rows: 4, cols: 1 }, // 4 jumpers
+  { rows: 2, cols: 3 }, // 6 jumpers
+  { rows: 3, cols: 2 }, // 6 jumpers
+  { rows: 3, cols: 3 }, // 9 jumpers
+  { rows: 2, cols: 4 }, // 8 jumpers
+  { rows: 4, cols: 2 }, // 8 jumpers
+  { rows: 3, cols: 4 }, // 12 jumpers
+  { rows: 4, cols: 3 }, // 12 jumpers
+  { rows: 4, cols: 4 }, // 16 jumpers
+  { rows: 5, cols: 5 }, // 25 jumpers
+  { rows: 6, cols: 6 }, // 36 jumpers
+  { rows: 7, cols: 7 }, // 49 jumpers
+  { rows: 8, cols: 8 }, // 64 jumpers
+].sort((a, b) => a.rows * a.cols - b.rows * b.cols)
 
 const median = (numbers: number[]): number | undefined => {
   if (numbers.length === 0) return undefined
@@ -156,13 +156,19 @@ const datasetPath = path.join(
   __dirname,
   "../../datasets/jumper-graph-solver/dataset02.json",
 )
-const dataset: DatasetSample[] = JSON.parse(fs.readFileSync(datasetPath, "utf8"))
+const dataset: DatasetSample[] = JSON.parse(
+  fs.readFileSync(datasetPath, "utf8"),
+)
 
 console.log("Benchmark: 0603 Jumper Grid Solver")
 console.log("=".repeat(70))
 console.log(`Loaded ${dataset.length} samples from dataset02`)
-console.log(`Testing grid sizes: ${GRID_CONFIGS.map(g => `${g.rows}x${g.cols}`).join(", ")}`)
-console.log(`Each configuration tested in both vertical and horizontal orientations\n`)
+console.log(
+  `Testing grid sizes: ${GRID_CONFIGS.map((g) => `${g.rows}x${g.cols}`).join(", ")}`,
+)
+console.log(
+  `Each configuration tested in both vertical and horizontal orientations\n`,
+)
 
 const results: {
   sampleIndex: number
@@ -183,13 +189,13 @@ let currentOrientation = ""
 let attemptsThisSample = 0
 
 const printProgress = () => {
-  const solvedSoFar = results.filter(r => r.solved).length
+  const solvedSoFar = results.filter((r) => r.solved).length
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   console.log(
     `[${elapsed}s] Sample ${currentSampleIndex + 1}/${dataset.length} | ` +
-    `Testing ${currentGridConfig} ${currentOrientation} | ` +
-    `Attempt ${attemptsThisSample} | ` +
-    `Solved: ${solvedSoFar}/${results.length}`
+      `Testing ${currentGridConfig} ${currentOrientation} | ` +
+      `Attempt ${attemptsThisSample} | ` +
+      `Solved: ${solvedSoFar}/${results.length}`,
   )
 }
 
@@ -256,11 +262,11 @@ const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1)
 console.log(`\nCompleted in ${totalElapsed}s\n`)
 
 // Calculate statistics
-const solvedResults = results.filter(r => r.solved)
-const unsolvedResults = results.filter(r => !r.solved)
+const solvedResults = results.filter((r) => r.solved)
+const unsolvedResults = results.filter((r) => !r.solved)
 
 const completionRate = (solvedResults.length / results.length) * 100
-const jumperCounts = solvedResults.map(r => r.jumpersUsed!)
+const jumperCounts = solvedResults.map((r) => r.jumpersUsed!)
 const medianJumpers = median(jumperCounts)
 const p25Jumpers = percentile(jumperCounts, 25)
 const p75Jumpers = percentile(jumperCounts, 75)
@@ -269,9 +275,13 @@ const p95Jumpers = percentile(jumperCounts, 95)
 console.log("=".repeat(70))
 console.log("Results Summary")
 console.log("=".repeat(70))
-console.log(`Completion: ${solvedResults.length}/${results.length} (${completionRate.toFixed(1)}%)`)
+console.log(
+  `Completion: ${solvedResults.length}/${results.length} (${completionRate.toFixed(1)}%)`,
+)
 console.log(`Median jumpers used: ${medianJumpers ?? "N/A"}`)
-console.log(`Jumper distribution: P25=${p25Jumpers ?? "N/A"}, P75=${p75Jumpers ?? "N/A"}, P95=${p95Jumpers ?? "N/A"}`)
+console.log(
+  `Jumper distribution: P25=${p25Jumpers ?? "N/A"}, P75=${p75Jumpers ?? "N/A"}, P95=${p95Jumpers ?? "N/A"}`,
+)
 
 // Distribution by grid size used
 console.log("\nSolutions by grid size:")
@@ -283,12 +293,12 @@ for (const r of solvedResults) {
 const sortedGrids = Array.from(gridCounts.entries()).sort((a, b) => {
   const [aRows, aCols] = a[0].split("x").map(Number)
   const [bRows, bCols] = b[0].split("x").map(Number)
-  return (aRows * aCols) - (bRows * bCols)
+  return aRows * aCols - bRows * bCols
 })
 for (const [grid, count] of sortedGrids) {
   const [rows, cols] = grid.split("x").map(Number)
   const jumpers = rows * cols
-  const pct = (count / solvedResults.length * 100).toFixed(1)
+  const pct = ((count / solvedResults.length) * 100).toFixed(1)
   console.log(`  ${grid} (${jumpers} jumpers): ${count} solutions (${pct}%)`)
 }
 
@@ -304,22 +314,32 @@ for (const r of results) {
   group.total++
   if (r.solved) group.solved++
 }
-const sortedCrossings = Array.from(crossingGroups.entries()).sort((a, b) => a[0] - b[0])
+const sortedCrossings = Array.from(crossingGroups.entries()).sort(
+  (a, b) => a[0] - b[0],
+)
 for (const [crossings, { solved, total }] of sortedCrossings) {
-  const pct = (solved / total * 100).toFixed(0)
-  const solvedJumpers = results.filter(r => r.numCrossings === crossings && r.solved).map(r => r.jumpersUsed!)
+  const pct = ((solved / total) * 100).toFixed(0)
+  const solvedJumpers = results
+    .filter((r) => r.numCrossings === crossings && r.solved)
+    .map((r) => r.jumpersUsed!)
   const medJumpers = median(solvedJumpers)
-  console.log(`  ${crossings} crossings: ${solved}/${total} (${pct}%) solved, median ${medJumpers ?? "N/A"} jumpers`)
+  console.log(
+    `  ${crossings} crossings: ${solved}/${total} (${pct}%) solved, median ${medJumpers ?? "N/A"} jumpers`,
+  )
 }
 
 if (unsolvedResults.length > 0 && unsolvedResults.length <= 20) {
   console.log("\nUnsolved samples:")
   for (const r of unsolvedResults) {
     const sample = dataset[r.sampleIndex]
-    console.log(`  - Sample ${r.sampleIndex}: ${sample.config.numCrossings} crossings, seed=${sample.config.seed}`)
+    console.log(
+      `  - Sample ${r.sampleIndex}: ${sample.config.numCrossings} crossings, seed=${sample.config.seed}`,
+    )
   }
 } else if (unsolvedResults.length > 20) {
-  console.log(`\n${unsolvedResults.length} samples could not be solved with any configuration`)
+  console.log(
+    `\n${unsolvedResults.length} samples could not be solved with any configuration`,
+  )
 }
 
 console.log("\n" + "=".repeat(70))
