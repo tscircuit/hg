@@ -209,15 +209,11 @@ export const generateSingleJumperRegions = ({
   ports.push(createPort("B-L", bottom, left))
   ports.push(createPort("B-R", bottom, right))
 
-  // Left pad connections (3 outer ports: top, left, bottom)
-  ports.push(createPort("T-LP", top, leftPad))
+  // Left pad connections (1 outer port: left only)
   ports.push(createPort("L-LP", left, leftPad))
-  ports.push(createPort("B-LP", bottom, leftPad))
 
-  // Right pad connections (3 outer ports: top, right, bottom)
-  ports.push(createPort("T-RP", top, rightPad))
+  // Right pad connections (1 outer port: right only)
   ports.push(createPort("R-RP", right, rightPad))
-  ports.push(createPort("B-RP", bottom, rightPad))
 
   // Underjumper connections (top and bottom only - NO ports to pads!)
   ports.push(createPort("T-UJ", top, underjumper))

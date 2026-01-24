@@ -361,8 +361,6 @@ export const generateJumperGrid = ({
             effectiveOuterChannelXPoints,
           ),
         )
-        ports.push(createPort(`${idPrefix}:T-LP`, top, leftPad))
-        ports.push(createPort(`${idPrefix}:T-RP`, top, rightPad))
         ports.push(createPort(`${idPrefix}:T-UJ`, top, underjumper))
       }
 
@@ -386,8 +384,6 @@ export const generateJumperGrid = ({
             effectiveOuterChannelXPoints,
           ),
         )
-        ports.push(createPort(`${idPrefix}:B-LP`, bottom, leftPad))
-        ports.push(createPort(`${idPrefix}:B-RP`, bottom, rightPad))
         ports.push(createPort(`${idPrefix}:B-UJ`, bottom, underjumper))
       }
 
@@ -456,7 +452,7 @@ export const generateJumperGrid = ({
       // Vertical connections from cell above (A on top, current B on bottom)
       if (row > 0) {
         const aboveCell = cells[row - 1][col]
-        // A.bottom connects to B.left, B.leftPad, B.underjumper, B.rightPad, B.right
+        // A.bottom connects to B.left, B.underjumper, B.right
         if (left) {
           ports.push(
             ...createMultiplePorts(
@@ -469,23 +465,9 @@ export const generateJumperGrid = ({
         }
         ports.push(
           createPort(
-            `cell_${row - 1}_${col}->cell_${row}_${col}:B-LP`,
-            aboveCell.bottom!,
-            leftPad,
-          ),
-        )
-        ports.push(
-          createPort(
             `cell_${row - 1}_${col}->cell_${row}_${col}:B-UJ`,
             aboveCell.bottom!,
             underjumper,
-          ),
-        )
-        ports.push(
-          createPort(
-            `cell_${row - 1}_${col}->cell_${row}_${col}:B-RP`,
-            aboveCell.bottom!,
-            rightPad,
           ),
         )
         ports.push(
