@@ -27,6 +27,10 @@ export const JUMPER_GRAPH_SOLVER_DEFAULTS = {
 }
 
 export class JumperGraphSolver extends HyperGraphSolver<JRegion, JPort> {
+  override getSolverName(): string {
+    return "JumperGraphSolver"
+  }
+
   UNIT_OF_COST = "hops"
 
   portUsagePenalty = JUMPER_GRAPH_SOLVER_DEFAULTS.portUsagePenalty

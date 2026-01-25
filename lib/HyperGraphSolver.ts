@@ -27,6 +27,10 @@ export class HyperGraphSolver<
     RegionPortType
   >,
 > extends BaseSolver {
+  override getSolverName(): string {
+    return "HyperGraphSolver"
+  }
+
   graph: HyperGraph
   connections: Connection[]
 

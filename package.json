@@ -29,6 +29,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@tscircuit/solver-utils": "^0.0.13"
+    "@tscircuit/solver-utils": "^0.0.14"
   }
 }
