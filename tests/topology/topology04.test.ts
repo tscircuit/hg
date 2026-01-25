@@ -7,7 +7,9 @@ test("topology04 - horizontal boundary", () => {
   const topo = new Topology()
 
   const top = topo.region("top").rect({ minX: 0, maxX: 2, minY: 1, maxY: 2 })
-  const bottom = topo.region("bottom").rect({ minX: 0, maxX: 2, minY: 0, maxY: 1 })
+  const bottom = topo
+    .region("bottom")
+    .rect({ minX: 0, maxX: 2, minY: 0, maxY: 1 })
 
   topo.connect(top, bottom).ports(2)
 

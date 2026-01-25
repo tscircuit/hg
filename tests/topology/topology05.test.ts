@@ -9,7 +9,9 @@ test("topology05 - scope prefixing", () => {
   topo.scope("cell_0_0", (cell) => {
     // pad from y=-0.25 to y=0.25, top from y=0.25 to y=1 (they share edge at y=0.25)
     const pad1 = cell.region("pad1").pad().center(0, 0).size(0.5, 0.5)
-    const top = cell.region("T").rect({ minX: -0.25, maxX: 0.25, minY: 0.25, maxY: 1 })
+    const top = cell
+      .region("T")
+      .rect({ minX: -0.25, maxX: 0.25, minY: 0.25, maxY: 1 })
 
     cell.connect(top, pad1).idPrefix("T-P1").ports(1)
   })
@@ -17,7 +19,9 @@ test("topology05 - scope prefixing", () => {
   topo.scope("cell_0_1", (cell) => {
     // pad from y=-0.25 to y=0.25, top from y=0.25 to y=1 (they share edge at y=0.25)
     const pad1 = cell.region("pad1").pad().center(1.5, 0).size(0.5, 0.5)
-    const top = cell.region("T").rect({ minX: 1.25, maxX: 1.75, minY: 0.25, maxY: 1 })
+    const top = cell
+      .region("T")
+      .rect({ minX: 1.25, maxX: 1.75, minY: 0.25, maxY: 1 })
 
     cell.connect(top, pad1).idPrefix("T-P1").ports(1)
   })

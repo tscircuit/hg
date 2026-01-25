@@ -6,7 +6,10 @@ import {
   pointOnBoundary,
 } from "./utils"
 
-type ResolveRegionFn = (ref: RegionRef | string) => { id: string; bounds: Bounds }
+type ResolveRegionFn = (ref: RegionRef | string) => {
+  id: string
+  bounds: Bounds
+}
 type AddPortFn = (port: PortData) => void
 
 export class PortBuilder {

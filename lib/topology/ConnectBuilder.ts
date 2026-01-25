@@ -39,7 +39,9 @@ export class ConnectBuilder {
     this.prefixIdFn = prefixIdFn
     this.tolerance = opts?.tolerance ?? 0.001
     // Default prefix is computed from region IDs (already prefixed by Topology)
-    this.prefix = opts?.idPrefix ?? `${region1Id.split(":").pop()}-${region2Id.split(":").pop()}`
+    this.prefix =
+      opts?.idPrefix ??
+      `${region1Id.split(":").pop()}-${region2Id.split(":").pop()}`
   }
 
   private ensureBoundary(): SharedBoundary {

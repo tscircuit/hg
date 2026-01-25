@@ -82,7 +82,10 @@ export class Topology {
     return region.ref()
   }
 
-  private resolveRegion(ref: RegionRef | string): { id: string; bounds: Bounds } {
+  private resolveRegion(ref: RegionRef | string): {
+    id: string
+    bounds: Bounds
+  } {
     const id = typeof ref === "string" ? this.prefixId(ref) : ref.id
     const region = this.regions.get(id)
     if (!region) {
@@ -106,7 +109,11 @@ export class Topology {
     this.ports.push(port)
   }
 
-  connect(a: RegionRef | string, b: RegionRef | string, opts?: ConnectOpts): ConnectBuilder {
+  connect(
+    a: RegionRef | string,
+    b: RegionRef | string,
+    opts?: ConnectOpts,
+  ): ConnectBuilder {
     const region1 = this.resolveRegion(a)
     const region2 = this.resolveRegion(b)
 
@@ -120,7 +127,10 @@ export class Topology {
       region2.bounds,
       (port) => this.addPort(port),
       (id) => (currentScopePrefix ? `${currentScopePrefix}:${id}` : id),
-      { idPrefix: opts?.idPrefix, tolerance: opts?.tolerance ?? this.defaultTolerance },
+      {
+        idPrefix: opts?.idPrefix,
+        tolerance: opts?.tolerance ?? this.defaultTolerance,
+      },
     )
 
     // Track this connection so we can finalize it with default ports if needed
@@ -176,14 +186,21 @@ export class Topology {
     for (const port of this.ports) {
       // Check region references exist
       if (!this.regions.has(port.region1Id)) {
-        errors.push(`Port "${port.id}" references non-existent region "${port.region1Id}"`)
+        errors.push(
+          `Port "${port.id}" references non-existent region "${port.region1Id}"`,
+        )
       }
       if (!this.regions.has(port.region2Id)) {
-        errors.push(`Port "${port.id}" references non-existent region "${port.region2Id}"`)
+        errors.push(
+          `Port "${port.id}" references non-existent region "${port.region2Id}"`,
+        )
       }
 
       // If both regions exist, check port position validity
-      if (this.regions.has(port.region1Id) && this.regions.has(port.region2Id)) {
+      if (
+        this.regions.has(port.region1Id) &&
+        this.regions.has(port.region2Id)
+      ) {
         const region1 = this.resolveRegion(port.region1Id)
         const region2 = this.resolveRegion(port.region2Id)
 
@@ -305,7 +322,10 @@ export class Topology {
   // Utility method to merge an existing JumperGraph
   merge(
     graph: JumperGraph,
-    opts?: { prefix?: string; transform?: (p: { x: number; y: number }) => { x: number; y: number } },
+    opts?: {
+      prefix?: string
+      transform?: (p: { x: number; y: number }) => { x: number; y: number }
+    },
   ): void {
     const prefix = opts?.prefix ?? ""
     const transform = opts?.transform ?? ((p) => p)
@@ -318,9 +338,12 @@ export class Topology {
       const newId = prefix ? `${prefix}:${region.regionId}` : region.regionId
 
       if (this.regions.has(newId)) {
-        throw new TopologyError(`Region "${newId}" already exists during merge`, {
-          regionIds: [newId],
-        })
+        throw new TopologyError(
+          `Region "${newId}" already exists during merge`,
+          {
+            regionIds: [newId],
+          },
+        )
       }
 
       regionIdMap.set(region.regionId, newId)
@@ -352,8 +375,14 @@ export class Topology {
       if (region.d.isConnectionRegion) builder.connectionRegion()
 
       // Copy any extra metadata
-      const { bounds, center, isPad, isThroughJumper, isConnectionRegion, ...rest } =
-        region.d
+      const {
+        bounds,
+        center,
+        isPad,
+        isThroughJumper,
+        isConnectionRegion,
+        ...rest
+      } = region.d
       if (Object.keys(rest).length > 0) {
         builder.meta(rest)
       }
