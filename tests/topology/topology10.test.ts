@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology10 - fractions spread", () => {
@@ -14,4 +16,8 @@ test("topology10 - fractions spread", () => {
   expect(graph.ports[0].d.y).toBeCloseTo(0.25, 5)
   expect(graph.ports[1].d.y).toBeCloseTo(0.5, 5)
   expect(graph.ports[2].d.y).toBeCloseTo(0.75, 5)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

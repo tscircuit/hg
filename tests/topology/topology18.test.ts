@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology18 - metadata on regions", () => {
@@ -8,4 +10,8 @@ test("topology18 - metadata on regions", () => {
 
   const graph = topo.toJumperGraph()
   expect((graph.regions[0].d as any).customField).toBe("value")
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

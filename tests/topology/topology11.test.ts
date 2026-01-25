@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology11 - at(t) for single port positioning", () => {
@@ -13,4 +15,8 @@ test("topology11 - at(t) for single port positioning", () => {
 
   expect(graph.ports).toHaveLength(1)
   expect(graph.ports[0].d.y).toBeCloseTo(0.25, 5)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

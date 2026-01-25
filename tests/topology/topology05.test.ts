@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology05 - scope prefixing", () => {
@@ -31,4 +33,8 @@ test("topology05 - scope prefixing", () => {
   // Port IDs should be scoped
   expect(graph.ports.map((p) => p.portId)).toContain("cell_0_0:T-P1")
   expect(graph.ports.map((p) => p.portId)).toContain("cell_0_1:T-P1")
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

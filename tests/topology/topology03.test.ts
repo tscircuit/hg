@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology03 - center and size API", () => {
@@ -22,4 +24,8 @@ test("topology03 - center and size API", () => {
 
   const tjRegion = graph.regions.find((r) => r.regionId === "tj")!
   expect(tjRegion.d.isThroughJumper).toBe(true)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

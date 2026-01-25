@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology17 - connect by string IDs", () => {
@@ -11,4 +13,8 @@ test("topology17 - connect by string IDs", () => {
 
   const graph = topo.toJumperGraph()
   expect(graph.ports).toHaveLength(1)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

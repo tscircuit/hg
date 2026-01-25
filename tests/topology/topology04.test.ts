@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology04 - horizontal boundary", () => {
@@ -15,4 +17,8 @@ test("topology04 - horizontal boundary", () => {
   // Ports should be on horizontal boundary at y=1
   expect(graph.ports[0].d.y).toBe(1)
   expect(graph.ports[1].d.y).toBe(1)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

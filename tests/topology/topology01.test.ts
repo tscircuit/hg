@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology01 - basic two region connect", () => {
@@ -17,4 +19,8 @@ test("topology01 - basic two region connect", () => {
   // Port should be at x=1, y=0.5 (midpoint of shared vertical edge)
   expect(graph.ports[0].d.x).toBe(1)
   expect(graph.ports[0].d.y).toBe(0.5)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

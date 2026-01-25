@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology14 - merge existing JumperGraph", () => {
@@ -16,4 +18,8 @@ test("topology14 - merge existing JumperGraph", () => {
   expect(graph2.regions.map((r) => r.regionId)).toContain("merged:A")
   expect(graph2.regions.map((r) => r.regionId)).toContain("merged:B")
   expect(graph2.ports[0].portId).toBe("merged:A-B")
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph2)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

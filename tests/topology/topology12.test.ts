@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology12 - getPortIds returns port IDs", () => {
@@ -10,4 +12,9 @@ test("topology12 - getPortIds returns port IDs", () => {
   const portIds = topo.connect(A, B).idPrefix("A-B").ports(3).getPortIds()
 
   expect(portIds).toEqual(["A-B:0", "A-B:1", "A-B:2"])
+
+  const graph = topo.toJumperGraph()
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })

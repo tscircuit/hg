@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { getSvgFromGraphicsObject } from "graphics-debug"
+import { visualizeJumperGraph } from "lib/JumperGraphSolver/visualizeJumperGraph"
 import { Topology } from "lib/topology"
 
 test("topology13 - regions reference each other via ports", () => {
@@ -22,4 +24,8 @@ test("topology13 - regions reference each other via ports", () => {
   // Port references are the actual region objects
   expect(port.region1).toBe(regionA)
   expect(port.region2).toBe(regionB)
+
+  expect(
+    getSvgFromGraphicsObject(visualizeJumperGraph(graph)),
+  ).toMatchSvgSnapshot(import.meta.path)
 })
